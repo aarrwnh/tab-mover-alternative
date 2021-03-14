@@ -29,7 +29,7 @@ function createMenuItem(createProperties) {
     });
 }
 
-async function moveTabs(tab, targetWindowId) {
+async function moveTabs(tab, targetWindowId, switchToActiveTab = false) {
     updateOptions();
 
     // if the current tab is part of a highlighted group then move the whole
@@ -58,7 +58,8 @@ async function moveTabs(tab, targetWindowId) {
         }
     );
 
-    if (opts.switchToTabAfterMoving && activeTab && activeTab.id) {
+    if (switchToActiveTab
+        || opts.switchToTabAfterMoving && activeTab && activeTab.id) {
         // mark the previously active tab active again before highlighting other
         // tabs since this resets the selected tabs
         await browser.tabs.update(activeTab.id, { active: true });
@@ -177,6 +178,15 @@ async function updateOptions() {
         });
 }
 
+browser.browserAction.setBadgeBackgroundColor({ color: "blue" });
+browser.browserAction.setBadgeTextColor({ color: "white" });
+
+function updateIconBadge(id) {
+    browser.browserAction.setBadgeText({
+        text: String(id)
+    });
+}
+
 (async () => {
     await Promise.all([
         // create submenus
@@ -203,6 +213,7 @@ async function updateOptions() {
 
     browser.windows.onFocusChanged.addListener((id) => {
         if (id > 0) {
+            updateIconBadge([...lastFocused].reverse()[0]);
             lastFocused.delete(id);
             lastFocused.add(id);
         }
@@ -210,9 +221,13 @@ async function updateOptions() {
 
     browser.windows.onRemoved.addListener((id) => {
         lastFocused.delete(id);
+        updateIconBadge("-1");
     });
 
-    browser.browserAction.onClicked.addListener(async (tab) => {
+    browser.browserAction.onClicked.addListener(async (tab, info) => {
+
+        const switchToActiveTab = info.button === 0 ? false : true;
+
         let targetWindows = await browser.windows.getAll({
             populate: true,
             windowTypes: ["normal"]
@@ -233,12 +248,11 @@ async function updateOptions() {
                     continue;
                 }
 
-                if (lastActiveWindow > 0) {
-                    moveTabs(tab, lastActiveWindow);
-                    break;
-                }
-
-                moveTabs(tab, targetWindow.id);
+                moveTabs(
+                    tab,
+                    lastActiveWindow > 0 ? lastActiveWindow : targetWindow.id,
+                    switchToActiveTab
+                );
                 break;
             }
         }
