@@ -178,12 +178,14 @@ async function updateOptions() {
         });
 }
 
-browser.browserAction.setBadgeBackgroundColor({ color: "blue" });
+browser.browserAction.setBadgeBackgroundColor({ color: "royalblue" });
 browser.browserAction.setBadgeTextColor({ color: "white" });
 
-function updateIconBadge(id) {
+async function updateIconBadge(id) {
+    const currentWindowId = (await browser.windows.getCurrent()).id;
+
     browser.browserAction.setBadgeText({
-        text: String(id)
+        text: id > 0 ? currentWindowId === id ? "" : String(id) : ""
     });
 }
 
@@ -208,32 +210,28 @@ function updateIconBadge(id) {
 })();
 
 (async () => {
+
     let lastFocused = new Set();
-    lastFocused.add(browser.windows.WINDOW_ID_CURRENT);
+    (await browser.windows.getAll()).forEach((w) => lastFocused.add(w.id));
 
-    browser.windows.onFocusChanged.addListener((id) => {
-        if (id > 0) {
-            updateIconBadge([...lastFocused].reverse()[0]);
-            lastFocused.delete(id);
-            lastFocused.add(id);
-        }
-    });
-
-    browser.windows.onRemoved.addListener((id) => {
-        lastFocused.delete(id);
-        updateIconBadge("-1");
-    });
-
-    browser.browserAction.onClicked.addListener(async (tab, info) => {
-
-        const switchToActiveTab = info.button === 0 ? false : true;
+    /**
+     * @param {browser.tabs.Tab | undefined} tab 
+     * @param {browser.contextMenus.OnClickData} info 
+     */
+    const onClicked = async (tab, info) => {
+        const { button, modifiers } = info;
+        const switchToActiveTab = modifiers.length > 0 && modifiers.includes("Shift")
+            ? true
+            : button === 1
+                ? true
+                : false;
 
         let targetWindows = await browser.windows.getAll({
             populate: true,
             windowTypes: ["normal"]
         });
 
-        const lastActiveWindow = [...lastFocused].reverse()[1];
+        const lastActiveWindow = [...lastFocused][0];
 
         if (targetWindows.length === 1) {
             moveTabs(tab, null);
@@ -256,5 +254,21 @@ function updateIconBadge(id) {
                 break;
             }
         }
+    };
+
+    browser.windows.onFocusChanged.addListener(async (id) => {
+        if (id > 0) {
+            updateIconBadge([...lastFocused].reverse()[0]);
+            lastFocused.delete(id);
+            lastFocused.add(id);
+        }
     });
+
+    browser.windows.onRemoved.addListener((id) => {
+        lastFocused.delete(id);
+        updateIconBadge(-1);
+    });
+
+    browser.browserAction.onClicked.addListener(onClicked);
+    browser.contextMenus.onClicked.addListener(onClicked);
 })();
