@@ -1,0 +1,58 @@
+{
+    "extensionName": {
+        "message": "Tab Mover",
+        "description": "Name of the extension."
+    },
+    "extensionDescription": {
+        "message": "Move tabs between windows via the context menu.",
+        "description": "Description of the extension."
+    },
+    "moveToWindowMenu": {
+        "message": "Move to Window",
+        "description": "Label of the submenu for selecting a window to which the current tab should be moved to."
+    },
+    "reopenInWindowMenu": {
+        "message": "Close and Reopen in Window",
+        "description": "Label of the submenu for selecting a window in which the current tab should be reopened in."
+    },
+    "defaultWindowTitle": {
+        "message": "Window $id$",
+        "description": "Default title for windows.",
+        "placeholders": {
+            "id": {
+                "content": "$1",
+                "example": "0"
+            }
+        }
+    },
+    "defaultIncognitoWindowTitle": {
+        "message": "Window $id$ (Private Browsing)",
+        "description": "Default title for windows in incognito-mode.",
+        "placeholders": {
+            "id": {
+                "content": "$1",
+                "example": "0"
+            }
+        }
+    },
+    "windowTitle": {
+        "message": "$title$",
+        "description": "Title for windows.",
+        "placeholders": {
+            "title": {
+                "content": "$1",
+                "example": "Download Firefox — Free Web Browser — Mozilla"
+            }
+        }
+    },
+    "incognitoWindowTitle": {
+        "message": "$title$ (Private Browsing)",
+        "description": "Title for windows in incognito-mode.",
+        "placeholders": {
+            "title": {
+                "content": "$1",
+                "example": "Download Firefox — Free Web Browser — Mozilla"
+            }
+        }
+    }
+}

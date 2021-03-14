@@ -1,0 +1,49 @@
+News
+====
+
+Tab Mover 8 (2021-03-01T08:28:25+01:00)
+---------------------------------------
+
+- Preserve active and highlighted properties of moved tabs
+- Add French translations
+
+Tab Mover 7 (2018-11-25T14:04:26+01:00)
+---------------------------------------
+
+- Allow moving multiple highlighted tabs
+- Create menus on-the-fly
+
+Tab Mover 6 (2018-05-31T14:02:00+02:00)
+---------------------------------------
+
+- Bump version number for resubmission to addons.mozilla.org
+
+Tab Mover 5 (2018-05-31T13:07:29+02:00)
+---------------------------------------
+
+- Remove incorrect specification of the tab position when creating new tabs
+- Remove generated files on the clean target
+
+Tab Mover 4 (2017-02-22T09:12:10+01:00)
+---------------------------------------
+
+- Generate manifest.json
+- Update menu when reopening a tab
+- Allow reopening tabs from normal windows in incognito windows
+- Clean up code
+
+Tab Mover 3 (2017-02-19T22:02:48+01:00)
+---------------------------------------
+
+- Add German translation
+- Expand description and improve wording
+
+Tab Mover 2 (2017-02-19T00:43:30+01:00)
+---------------------------------------
+
+- Bump version number for resubmission to addons.mozilla.org
+
+Tab Mover 1 (2017-02-19T00:24:56+01:00)
+---------------------------------------
+
+- Initial revision

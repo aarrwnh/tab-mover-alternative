@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "name": "__MSG_extensionName__",
+  "version": "@VERSION@",
+  "description": "__MSG_extensionDescription__",
+  "author": "Guido Berhoerster",
+  "homepage_url": "https://code.guido-berhoerster.org/addons/firefox-addons/tab-mover/",
+  "applications": {
+      "gecko": {
+          "id": "tab-mover@code.guido-berhoerster.org",
+          "strict_min_version": "60.0"
+      }
+  },
+  "icons": {
+      "48": "icons/tab-mover-48.png",
+      "96": "icons/tab-mover-96.png"
+  },
+  "default_locale": "en",
+  "permissions": [
+    "menus",
+    "tabs"
+  ],
+  "background": {
+    "scripts": [
+        "background.js"
+    ]
+  }
+}

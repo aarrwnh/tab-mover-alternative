@@ -1,0 +1,58 @@
+{
+    "extensionName": {
+        "message": "Tab Mover",
+        "description": "Name of the extension."
+    },
+    "extensionDescription": {
+        "message": "Permet de déplacer des onglets d'une fenêtre à l'autre grâce au menu contextuel.",
+        "description": "Description of the extension."
+    },
+    "moveToWindowMenu": {
+        "message": "Déplacer vers une fenêtre",
+        "description": "Label of the submenu for selecting a window to which the current tab should be moved to."
+    },
+    "reopenInWindowMenu": {
+        "message": "Fermer puis rouvrir dans une fenêtre",
+        "description": "Label of the submenu for selecting a window in which the current tab should be reopened in."
+    },
+    "defaultWindowTitle": {
+        "message": "Fenêtre $id$",
+        "description": "Default title for windows.",
+        "placeholders": {
+            "id": {
+                "content": "$1",
+                "example": "0"
+            }
+        }
+    },
+    "defaultIncognitoWindowTitle": {
+        "message": "Fenêtre $id$ (navigation privée)",
+        "description": "Default title for windows in incognito-mode.",
+        "placeholders": {
+            "id": {
+                "content": "$1",
+                "example": "0"
+            }
+        }
+    },
+    "windowTitle": {
+        "message": "$title$",
+        "description": "Title for windows.",
+        "placeholders": {
+            "title": {
+                "content": "$1",
+                "example": "Téléchargez Firefox — navigateur libre et gratuit — Mozilla"
+            }
+        }
+    },
+    "incognitoWindowTitle": {
+        "message": "$title$ (navigation privée)",
+        "description": "Title for windows in incognito-mode.",
+        "placeholders": {
+            "title": {
+                "content": "$1",
+                "example": "Téléchargez Firefox — navigateur libre et gratuit — Mozilla"
+            }
+        }
+    }
+}
