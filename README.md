@@ -1,3 +1,11 @@
+## tab-mover-alternative
+This is a modified version of Tab Mover addon.
+
+https://code.guido-berhoerster.org/addons/firefox-addons/tab-mover/
+
+#
+#
+
 Tab Mover
 =========
 
