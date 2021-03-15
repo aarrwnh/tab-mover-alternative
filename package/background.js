@@ -8,6 +8,8 @@
 
 "use strict";
 
+const BADGE_COLOR_DEFAULT = "royalblue";
+const BADGE_COLOR_LAST_FOCUS = "red";
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "ftp:"]);
 var windowMenuIds = [];
 var lastMenuInstanceId = 0;
@@ -178,14 +180,20 @@ async function updateOptions() {
         });
 }
 
-browser.browserAction.setBadgeBackgroundColor({ color: "royalblue" });
-browser.browserAction.setBadgeTextColor({ color: "white" });
-
 async function updateIconBadge(id) {
-    const currentWindowId = (await browser.windows.getCurrent()).id;
+    const windows = await browser.windows.getAll();
 
-    browser.browserAction.setBadgeText({
-        text: id > 0 ? currentWindowId === id ? "" : String(id) : ""
+    await browser.browserAction.setBadgeText({
+        text: windows.length > 1 ? String(id) : ""
+    });
+
+    windows.forEach((y) => {
+        browser.browserAction.setBadgeBackgroundColor({
+            windowId: y.id,
+            color: y.id === id
+                ? BADGE_COLOR_LAST_FOCUS
+                : BADGE_COLOR_DEFAULT
+        });
     });
 }
 
@@ -231,7 +239,7 @@ async function updateIconBadge(id) {
             windowTypes: ["normal"]
         });
 
-        const lastActiveWindow = [...lastFocused][0];
+        const lastActiveWindow = [...lastFocused].reverse()[1];
 
         if (targetWindows.length === 1) {
             moveTabs(tab, null);
@@ -258,17 +266,28 @@ async function updateIconBadge(id) {
 
     browser.windows.onFocusChanged.addListener(async (id) => {
         if (id > 0) {
-            updateIconBadge([...lastFocused].reverse()[0]);
-            lastFocused.delete(id);
-            lastFocused.add(id);
+            const last = [...lastFocused][lastFocused.size - 1];
+            if (last !== id) {
+                updateIconBadge(last);
+                lastFocused.delete(id);
+                lastFocused.add(id);
+            }
         }
+
     });
 
     browser.windows.onRemoved.addListener((id) => {
         lastFocused.delete(id);
-        updateIconBadge(-1);
+        updateIconBadge([...lastFocused][0]);
     });
 
     browser.browserAction.onClicked.addListener(onClicked);
-    browser.contextMenus.onClicked.addListener(onClicked);
+    // browser.contextMenus.onClicked.addListener(onClicked);
+
+    browser.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR_DEFAULT });
+    browser.browserAction.setBadgeTextColor({ color: "white" });
+
+    if (lastFocused.size > 1) {
+        updateIconBadge([...lastFocused][1]);
+    }
 })();
