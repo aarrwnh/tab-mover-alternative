@@ -1,5 +1,6 @@
 const DEFAULT_OPTS = { // keys are used as id selector
-	switchToTabAfterMoving: false
+	switchToTabAfterMoving: false,
+	showLastWindowIDBadge: false
 };
 
 /** @param {Event} e */
@@ -8,6 +9,9 @@ function saveOptions(e) {
 
 	/** @type {HTMLFormElement} */
 	const form = e.target;
+
+	/** @type {HTMLButtonElement} */
+	const submitButton = form.elements.submit;
 
 	const opts = { ...DEFAULT_OPTS };
 
@@ -22,7 +26,12 @@ function saveOptions(e) {
 			}
 		});
 
-	browser.storage.local.set(opts);
+	browser.storage.local.set(opts).then(() => {
+		submitButton.textContent = "Saved!";
+		setTimeout(() => {
+			submitButton.textContent = "Save";
+		}, 1000);
+	});
 }
 
 function setCurrentChoice(result) {

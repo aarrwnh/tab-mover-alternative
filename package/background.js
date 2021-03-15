@@ -16,7 +16,8 @@ var lastMenuInstanceId = 0;
 var nextMenuInstanceId = 1;
 
 const opts = {
-    switchToTabAfterMoving: false
+    switchToTabAfterMoving: false,
+    showLastWindowIDBadge: false
 };
 
 function createMenuItem(createProperties) {
@@ -183,17 +184,36 @@ async function updateOptions() {
 async function updateIconBadge(id) {
     const windows = await browser.windows.getAll();
 
-    await browser.browserAction.setBadgeText({
-        text: windows.length > 1 ? String(id) : ""
-    });
-
-    windows.forEach((y) => {
-        browser.browserAction.setBadgeBackgroundColor({
-            windowId: y.id,
-            color: y.id === id
-                ? BADGE_COLOR_LAST_FOCUS
-                : BADGE_COLOR_DEFAULT
+    if (opts.showLastWindowIDBadge) {
+        await browser.browserAction.setBadgeText({
+            text: windows.length > 1 ? String(id) : ""
         });
+    }
+    windows.forEach((y) => {
+        if (opts.showLastWindowIDBadge) {
+            browser.browserAction.setBadgeBackgroundColor({
+                windowId: y.id,
+                color: y.id === id
+                    ? BADGE_COLOR_LAST_FOCUS
+                    : BADGE_COLOR_DEFAULT
+            });
+        }
+
+        // Set the `non-active` icon for indicator of the last active window (destination)
+        browser.browserAction.setIcon({
+            windowId: y.id,
+            path: `src/icons/web-browser-${ y.id === id ? "non-" : "" }active.svg`
+        });
+
+        if (y.id === id) {
+            // Set button tooltip pointing current tab title of the last active window
+            y.title = y.title.replace(" — Firefox Nightly", "");
+            const title = y.title.slice(0, 20);
+            const ellipsis = y.title.length === title.length ? "" : "...";
+            browser.browserAction.setTitle({
+                title: `Move to window:\n${ id } : ${ title }${ ellipsis }`
+            });
+        }
     });
 }
 
