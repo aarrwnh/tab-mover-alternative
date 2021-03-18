@@ -3,6 +3,7 @@
 
 <head>
 	<meta charset="utf-8">
+	<link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
@@ -10,17 +11,46 @@
 		<div>
 			<label>
 				<input type="checkbox" id="switchToTabAfterMoving" data-option="true">
-				Highlight and switch to tab after move (middle clicking icon ignores this options).
-			</label>
-		</div>
-		<div>
-			<label>
-				<input type="checkbox" id="showLastWindowIDBadge" data-option="true">
-				Show last window id in badge.
+				Highlight and switch to tab after move (middle clicking icon ignores this options)
 			</label>
 		</div>
 
 		<div>
+			<label>
+				<input type="checkbox" id="showLastWindowIDBadge" data-option="true">
+				Show last window id in badge
+			</label>
+		</div>
+
+		<div class="text-input">
+			<hr>
+			Always move below containers to a new window:
+			<br>
+
+			<table id="identityTable">
+				<tr>
+					<td>Current:</td>
+					<td id="setContainers">
+						<input type="hidden" id="moveableContainers" data-option="true">
+					</td>
+				</tr>
+
+				<tr>
+					<td>Available:</td>
+					<td id="availableContainers"></td>
+				</tr>
+			</table>
+			<hr>
+		</div>
+
+		<!-- <div>
+			<label>
+				<input type="checkbox" id="debugMode" data-option="true">
+				debug
+			</label>
+		</div> -->
+
+		<div class="form-buttons">
 			<button id="submit" type="submit">Save</button>
 		</div>
 	</form>

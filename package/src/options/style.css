@@ -1,0 +1,95 @@
+:root {
+	/* firefox defaults: */
+	--grey-60: #4a4a4f;
+	--in-content-page-color: rgb(249, 249, 250);
+	--in-content-border-color: rgba(249,249,250,0.2);
+	--in-content-table-background: #202023;
+	--in-content-link-color: var(--blue-40);
+	--in-content-link-color-hover: var(--blue-50);
+}
+
+body {
+	min-height: 300px;
+	background-color: var(--in-content-table-background);
+	color: var(--in-content-page-color);
+}
+
+div {
+	padding: 0.5em 1em;
+}
+
+.text-input input {
+	margin-top: 1rem;
+	padding: 5px;
+	width: 100%;
+}
+
+.form-buttons {
+	text-align: center;
+}
+
+i {
+	font-size: smaller;
+}
+
+label:hover {
+	cursor: pointer;
+}
+
+a {
+	color: var(--in-content-link-color)
+}
+
+a:hover {
+	color: var(--in-content-link-color-hover)
+}
+
+hr {
+	color: var(--grey-60);
+}
+
+#containerList {
+	font-style: italic;
+}
+
+#identityTable {
+	padding-top: 1rem;
+	border-collapse: collapse;
+	width: 100%;
+}
+
+#identityTable td:nth-child(1) {
+	text-align: right;
+	width: 15%;
+}
+
+#identityTable td {
+	height: 4rem;
+	padding: 0px 5px;
+}
+
+.available-container {
+	display: inline-flex;
+	border: 1px solid var(--identity-border-color);
+	border-radius: 3px;
+	cursor: pointer;
+	padding: 6px 10px;
+	margin-top: 4px;
+	margin-right: 4px;
+	clear: none;
+	height: 2.6em;
+}
+
+.available-container:hover {
+	border-color: var(--identity-border-color-hover);
+}
+
+.available-container .container-icon {
+	background-color: var(--identity-border-color-hover);
+	-webkit-mask: var(--identity-icon) no-repeat center;
+	mask: var(--identity-icon) no-repeat center;
+	filter: invert(1);
+	width: 16px;
+	height: 16px;
+	margin: 0px 6px 0px 0;
+}
