@@ -25,7 +25,7 @@
 	"background": {
 		"scripts": [
 			"src/background/settings.js",
-			"background.js"
+			"src/background/main.js"
 		]
 	},
 	"browser_action": {

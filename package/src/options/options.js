@@ -166,6 +166,8 @@ async function setCurrentChoice(result) {
 		if (key in opts) {
 			const el = document.querySelector("#" + key);
 
+			if (!el) continue;
+
 			val = val || opts[key];
 
 			switch (el.type) {
