@@ -3,7 +3,7 @@
 const modules = window.modules || {};
 
 const settings = modules.settings = (function () {
-	const DEFAULT = { // keys are used as id selector
+	const DEFAULT = { // keys are used as id selectors
 		switchToTabAfterMoving: false,
 		showLastWindowIDBadge: false,
 		moveableContainers: [],
@@ -45,8 +45,6 @@ const settings = modules.settings = (function () {
 	}
 
 	browser.storage.onChanged.addListener(updateSettings);
-
-	console.log("settingsssss", _settings);
 
 	return _settings;
 })();

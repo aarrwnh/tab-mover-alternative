@@ -1,0 +1,51 @@
+Tab Mover
+=========
+
+Tab Mover is a Firefox Addon for quickly moving tabs between windows via the
+context menu. It can move tabs between two normal windows, two windows in
+incognito mode and from a normal window to an window in incognito mode. Since
+it is not possible to directly move tabs between normal windows and windows in
+incognito mode, Tab Mover can perform the equivalent of moving a tab by
+closing and reopening such tabs in another window.
+
+Usage
+-----
+
+In order to move a tab between windows, open the tab context menu by clicking
+on the tab using the right mouse button, then open the submenu named
+"Tab Mover", and finally select a window from the submenu named "Move to
+Window".  Multiple tabs can be moved by opening the context menu on a tab
+belonging to a group of highlighted tabs (highlighting multiple tabs is
+possible starting from Firefox 62 if the preference browser.tabs.multiselect
+is set to "true").
+
+In order to close a tab in a window in incognito mode and to reopen its URL
+in a normal window or vice versa, open the tab context menu by clicking the
+tab using the right mouse button, then open the submenu named "Tab Mover", and
+finally select a window from the submenu named "Close and Reopen in Window".
+
+Contact
+-------
+
+Please send any feedback, translations or bug reports via email to
+<guido+tab-mover@berhoerster.name>
+
+Bug Reports
+-----------
+
+When sending bug reports, please always mention the exact version of the addon
+with which the issue occurs as well as the version of Firefox and the operating
+system you are using and make sure that you provide sufficient information to
+reproduce the issue and include any error messages.
+
+License
+-------
+
+Except otherwise noted, all files are Copyright (C) 2017 Guido Berhoerster and
+distributed under the following license terms:
+
+Copyright (C) 2017 Guido Berhoerster <guido+tab-mover@berhoerster.name>
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
