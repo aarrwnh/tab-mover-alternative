@@ -275,16 +275,16 @@ async function updateIconBadge(id) {
 
 (() => {
 	/**
-	 * @type {browser.tabs._OnActivatedActiveInfo | null}
+	 * @type {Map<number, browser.tabs._OnActivatedActiveInfo>}
 	 */
-	let lastFocusedTab = null;
+	const lastFocusedTab = new Map();
 
-	browser.tabs.onActivated.addListener((info) => (lastFocusedTab = info));
+	browser.tabs.onActivated.addListener((info) => (lastFocusedTab.set(info.windowId, info)));
 
 	/**
 	 * @param {browser.tabs._OnActivatedActiveInfo} info 
 	 */
-	async function switchToLastTab(info) {
+	function switchToLastTab(info) {
 		browser.tabs.query({ windowId: info.windowId })
 			.then((tabs) => {
 				const lastActiveTab = tabs.filter((tab) => tab.id === info.previousTabId);
@@ -296,9 +296,16 @@ async function updateIconBadge(id) {
 
 	browser.commands.onCommand.addListener((command) => {
 		if (command === "last-active-tab") {
-			if (lastFocusedTab) {
-				switchToLastTab(lastFocusedTab);
-			}
+			browser.windows.getAll()
+				.then((windows) => {
+					const focusedWindow = windows.filter((window) => window.focused);
+					if (focusedWindow.length === 1) {
+						const id = focusedWindow[0].id;
+						if (lastFocusedTab.has(id)) {
+							switchToLastTab(lastFocusedTab.get(id));
+						}
+					}
+				});
 		}
 	});
 
