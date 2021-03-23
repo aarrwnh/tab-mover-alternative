@@ -277,19 +277,19 @@ async function updateIconBadge(id) {
 	/**
 	 * @type {Map<number, browser.tabs._OnActivatedActiveInfo>}
 	 */
-	const lastFocusedTab = new Map();
+	const prevFocusedTabs = new Map();
 
-	browser.tabs.onActivated.addListener((info) => (lastFocusedTab.set(info.windowId, info)));
+	browser.tabs.onActivated.addListener((info) => (prevFocusedTabs.set(info.windowId, info)));
 
 	/**
 	 * @param {browser.tabs._OnActivatedActiveInfo} info 
 	 */
-	function switchToLastTab(info) {
+	function switchToPrevTabInWindow(info) {
 		browser.tabs.query({ windowId: info.windowId })
 			.then((tabs) => {
-				const lastActiveTab = tabs.filter((tab) => tab.id === info.previousTabId);
-				if (lastActiveTab.length === 1) {
-					browser.tabs.update(lastActiveTab[0].id, { active: true });
+				const prevActiveTab = tabs.filter((tab) => tab.id === info.previousTabId);
+				if (prevActiveTab.length === 1) {
+					browser.tabs.update(prevActiveTab[0].id, { active: true });
 				}
 			});
 	}
@@ -298,11 +298,11 @@ async function updateIconBadge(id) {
 		if (command === "last-active-tab") {
 			browser.windows.getAll()
 				.then((windows) => {
-					const focusedWindow = windows.filter((window) => window.focused);
-					if (focusedWindow.length === 1) {
-						const id = focusedWindow[0].id;
-						if (lastFocusedTab.has(id)) {
-							switchToLastTab(lastFocusedTab.get(id));
+					const currentWindow = windows.filter((window) => window.focused);
+					if (currentWindow.length === 1) {
+						const id = currentWindow[0].id;
+						if (prevFocusedTabs.has(id)) {
+							switchToPrevTabInWindow(prevFocusedTabs.get(id));
 						}
 					}
 				});
