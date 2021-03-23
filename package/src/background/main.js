@@ -273,10 +273,41 @@ async function updateIconBadge(id) {
 	browser.menus.onHidden.addListener(onMenuHidden);
 })();
 
+(() => {
+	/**
+	 * @type {browser.tabs._OnActivatedActiveInfo | null}
+	 */
+	let lastFocusedTab = null;
+
+	browser.tabs.onActivated.addListener((info) => (lastFocusedTab = info));
+
+	/**
+	 * @param {browser.tabs._OnActivatedActiveInfo} info 
+	 */
+	async function switchToLastTab(info) {
+		browser.tabs.query({ windowId: info.windowId })
+			.then((tabs) => {
+				const lastActiveTab = tabs.filter((tab) => tab.id === info.previousTabId);
+				if (lastActiveTab.length === 1) {
+					browser.tabs.update(lastActiveTab[0].id, { active: true });
+				}
+			});
+	}
+
+	browser.commands.onCommand.addListener((command) => {
+		if (command === "last-active-tab") {
+			if (lastFocusedTab) {
+				switchToLastTab(lastFocusedTab);
+			}
+		}
+	});
+
+})();
+
 (async () => {
 
-	let lastFocused = new Set();
-	(await browser.windows.getAll()).forEach((w) => lastFocused.add(w.id));
+	let lastFocusedWindow = new Set();
+	(await browser.windows.getAll()).forEach((w) => lastFocusedWindow.add(w.id));
 
 	/**
 	 * @param {browser.tabs.Tab | undefined} tab 
@@ -284,18 +315,13 @@ async function updateIconBadge(id) {
 	 */
 	async function onClicked(tab, info) {
 		const { button, modifiers } = info;
-		const switchToActiveTab = modifiers.length > 0 && modifiers.includes("Shift")
-			? true
-			: button === 1
-				? true
-				: false;
 
 		let targetWindows = await browser.windows.getAll({
 			populate: true,
 			windowTypes: ["normal"]
 		});
 
-		const lastActiveWindow = [...lastFocused].reverse()[1];
+		const lastActiveWindow = [...lastFocusedWindow].reverse()[1];
 
 		if (targetWindows.length === 1) {
 			moveTabs(tab, null); // create new window
@@ -304,7 +330,7 @@ async function updateIconBadge(id) {
 			for (let targetWindow of targetWindows) {
 				if (targetWindow.id === tab.windowId) {
 					if (targetWindow.tabs.length === 1) {
-						lastFocused.delete(targetWindow.id);
+						lastFocusedWindow.delete(targetWindow.id);
 					}
 					// ignore active window
 					continue;
@@ -313,7 +339,11 @@ async function updateIconBadge(id) {
 				moveTabs(
 					tab,
 					lastActiveWindow > 0 ? lastActiveWindow : targetWindow.id,
-					switchToActiveTab
+					modifiers.length > 0 && modifiers.includes("Shift")
+						? true
+						: button === 1
+							? true
+							: false
 				);
 				break;
 			}
@@ -326,22 +356,20 @@ async function updateIconBadge(id) {
 		browser.windows.get(id)
 			.then(() => {
 				if (id > 0) {
-					const last = [...lastFocused][lastFocused.size - 1];
+					const last = [...lastFocusedWindow][lastFocusedWindow.size - 1];
 					if (last !== id) {
 						updateIconBadge(last);
-						lastFocused.delete(id);
-						lastFocused.add(id);
+						lastFocusedWindow.delete(id);
+						lastFocusedWindow.add(id);
 					}
 				}
 			})
-			.catch((err) => {
-				console.log(err);
-			});
+			.catch(console.error);
 	}
 
 	function onRemoved(id) {
-		updateIconBadge([...lastFocused][0]);
-		lastFocused.delete(id);
+		updateIconBadge([...lastFocusedWindow][0]);
+		lastFocusedWindow.delete(id);
 	}
 
 	browser.windows.onRemoved.addListener(onRemoved);
@@ -353,8 +381,8 @@ async function updateIconBadge(id) {
 	browser.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR_DEFAULT });
 	browser.browserAction.setBadgeTextColor({ color: "white" });
 
-	if (lastFocused.size > 1) {
-		updateIconBadge([...lastFocused][1]);
+	if (lastFocusedWindow.size > 1) {
+		updateIconBadge([...lastFocusedWindow][1]);
 	}
 
 	// update/reset some things on options change
@@ -364,7 +392,7 @@ async function updateIconBadge(id) {
 			setBadgeText("");
 		}
 		if (showLastWindowIDBadge) {
-			setBadgeText([...lastFocused][0]);
+			setBadgeText([...lastFocusedWindow][0]);
 		}
 	});
 })();
