@@ -43,11 +43,8 @@ async function saveOptions(e) {
 				submitButton.textContent = "Save";
 			}, 1000);
 		})
-		.catch((err) => {
-			console.log(err);
-		});
+		.catch(console.log);
 }
-
 
 /**
  * 

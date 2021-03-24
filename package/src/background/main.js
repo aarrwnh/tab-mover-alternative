@@ -273,13 +273,34 @@ async function updateIconBadge(id) {
 	browser.menus.onHidden.addListener(onMenuHidden);
 })();
 
+/**
+ * @returns {Promise<browser.windows.Window>}
+ */
+async function getCurrentWindow() {
+	return browser.windows.getCurrent();
+}
+
+/**
+ * @returns {Promise<browser.tabs.Tab[]>}
+ */
+async function getCurrentTab() {
+	return getCurrentWindow()
+		.then((currentWindow) => {
+			return browser.tabs.query({ windowId: currentWindow.id, active: true });
+		});
+}
+
 (() => {
 	/**
 	 * @type {Map<number, browser.tabs._OnActivatedActiveInfo>}
 	 */
 	const prevFocusedTabs = new Map();
 
-	browser.tabs.onActivated.addListener((info) => (prevFocusedTabs.set(info.windowId, info)));
+	browser.tabs.onActivated.addListener((info) => {
+		// prevent update on tab removal
+		if (info.previousTabId === undefined) return;
+		prevFocusedTabs.set(info.windowId, info);
+	});
 
 	/**
 	 * @param {browser.tabs._OnActivatedActiveInfo} info 
@@ -296,16 +317,12 @@ async function updateIconBadge(id) {
 
 	browser.commands.onCommand.addListener((command) => {
 		if (command === "last-active-tab") {
-			browser.windows.getAll()
-				.then((windows) => {
-					const currentWindow = windows.filter((window) => window.focused);
-					if (currentWindow.length === 1) {
-						const id = currentWindow[0].id;
-						if (prevFocusedTabs.has(id)) {
-							switchToPrevTabInWindow(prevFocusedTabs.get(id));
-						}
-					}
-				});
+			getCurrentWindow().then((currentWindow) => {
+				const id = currentWindow.id;
+				if (prevFocusedTabs.has(id)) {
+					switchToPrevTabInWindow(prevFocusedTabs.get(id));
+				}
+			});
 		}
 	});
 
@@ -358,7 +375,7 @@ async function updateIconBadge(id) {
 	}
 
 	function onFocusChanged(id) {
-		if (id === browser.windows.WINDOW_ID_NONE) return;
+		if (id < 1) return;
 
 		browser.windows.get(id)
 			.then(() => {
@@ -382,11 +399,20 @@ async function updateIconBadge(id) {
 	browser.windows.onRemoved.addListener(onRemoved);
 	browser.windows.onFocusChanged.addListener(onFocusChanged);
 
-	// browser.contextMenus.onClicked.addListener(onClicked);
-
 	browser.browserAction.onClicked.addListener(onClicked);
 	browser.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR_DEFAULT });
 	browser.browserAction.setBadgeTextColor({ color: "white" });
+
+	browser.commands.onCommand.addListener((command) => {
+		if (command === "move-tabs") {
+			getCurrentTab().then((tab) => {
+				const lastActiveWindow = [...lastFocusedWindow].reverse()[1];
+				if (tab.length > 0 && lastActiveWindow > 0) {
+					moveTabs(tab[0], lastActiveWindow);
+				}
+			});
+		}
+	});
 
 	if (lastFocusedWindow.size > 1) {
 		updateIconBadge([...lastFocusedWindow][1]);

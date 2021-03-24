@@ -85,10 +85,10 @@ hr {
 }
 
 .available-container .container-icon {
-	background-color: var(--identity-border-color-hover);
-	-webkit-mask: var(--identity-icon) no-repeat center;
-	mask: var(--identity-icon) no-repeat center;
-	filter: invert(1);
+	background-image: var(--identity-icon);
+	background-size: 16px;
+	filter: url("filters.svg#fill");
+	fill: var(--identity-border-color-hover);
 	width: 16px;
 	height: 16px;
 	margin: 0px 6px 0px 0;

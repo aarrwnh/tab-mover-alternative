@@ -40,10 +40,17 @@
 	"commands": {
 		"last-active-tab": {
 			"suggested_key": {
+				"default": "Ctrl+Alt+9",
+				"linux": "Ctrl+Alt+9"
+			},
+			"description": "Switch back to previously active tab"
+		},
+		"move-tabs": {
+			"suggested_key": {
 				"default": "Ctrl+Alt+8",
 				"linux": "Ctrl+Alt+8"
 			},
-			"description": "Switch back to previously active tab."
+			"description": "Move currently selected tabs"
 		}
 	}
 }
