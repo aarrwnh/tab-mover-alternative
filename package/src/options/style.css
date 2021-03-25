@@ -93,3 +93,7 @@ hr {
 	height: 16px;
 	margin: 0px 6px 0px 0;
 }
+
+#tabTravelDistance {
+	width: 4rem;
+}

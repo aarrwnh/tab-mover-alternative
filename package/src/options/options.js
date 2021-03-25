@@ -19,6 +19,10 @@ async function saveOptions(e) {
 	for (const el of form.elements) {
 		if ("option" in el.dataset) {
 			switch (el.type) {
+				case "number": {
+					opts[el.id] = Number(el.value);
+					break;
+				}
 				case "hidden": {
 					if (el.id === "moveableContainers") {
 						const identities = await getIdentities();
@@ -168,6 +172,10 @@ async function setCurrentChoice(result) {
 			val = val || opts[key];
 
 			switch (el.type) {
+				case "number": {
+					el.value = val;
+					break;
+				}
 				case "hidden": {
 					if (key === "moveableContainers") {
 						const identities = await getIdentities();

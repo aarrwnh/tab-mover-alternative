@@ -7,6 +7,7 @@ const settings = modules.settings = (function () {
 		switchToTabAfterMoving: false,
 		showLastWindowIDBadge: false,
 		moveableContainers: [],
+		tabTravelDistance: 0,
 		// debugMode: false
 	};
 
@@ -26,10 +27,13 @@ const settings = modules.settings = (function () {
 				return _settings;
 			});
 
+
 		// TODO: temp fix for when ?
 		await browser.storage.local.get()
 			.then(async (result) => {
-				if (Object.entries(result).length === 0) {
+				const currentSettings = Object.keys(result);
+				if (currentSettings.length === 0
+					|| currentSettings.length !== Object.keys(_settings).length) {
 					await _settings.reset();
 				}
 			});

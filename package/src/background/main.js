@@ -17,6 +17,40 @@ var windowMenuIds = [];
 var lastMenuInstanceId = 0;
 var nextMenuInstanceId = 1;
 
+/**
+ * @param {1 | -1} direction 
+ */
+function navigateToTab(direction) {
+	const { tabTravelDistance } = settings;
+
+	if (tabTravelDistance < 2) return;
+
+	getCurrentTab().then((currentTab) => {
+		if (currentTab.length !== 1) return;
+
+		const index = currentTab[0].index;
+		const jumpToIndex = direction === 1
+			? index + tabTravelDistance
+			: direction === -1
+				? index - tabTravelDistance
+				: -1;
+
+		if (jumpToIndex < 0) return;
+
+		browser.tabs.query({
+			windowId: browser.windows.WINDOW_ID_CURRENT,
+			index: jumpToIndex
+		})
+			.then((targetTab) => {
+				if (targetTab.length !== 1) return;
+
+				browser.tabs.update(targetTab[0].id, {
+					active: true
+				});
+			});
+	});
+}
+
 function createMenuItem(createProperties) {
 	return new Promise((resolve, reject) => {
 		let id = browser.menus.create(createProperties, () => {
@@ -34,7 +68,7 @@ function createMenuItem(createProperties) {
  * @param {number[]} tabs 
  */
 async function moveToWindow(targetWindowId, tabs) {
-	if (targetWindowId === 0) {
+	if (targetWindowId < 1) {
 		const newWindow = await browser.windows.create({
 			tabId: tabs.pop()
 		});
@@ -427,6 +461,18 @@ function getCurrentTab() {
 		}
 		if (showLastWindowIDBadge) {
 			setBadgeText([...lastFocusedWindow][0]);
+		}
+	});
+})();
+
+(() => {
+
+	browser.commands.onCommand.addListener((command) => {
+		if (command === "tab-jump-right") {
+			navigateToTab(1);
+		}
+		else if (command === "tab-jump-left") {
+			navigateToTab(-1);
 		}
 	});
 })();

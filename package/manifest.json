@@ -51,6 +51,20 @@
 				"linux": "Ctrl+Alt+8"
 			},
 			"description": "Move currently selected tabs"
+		},
+		"tab-jump-left": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+4",
+				"linux": "Ctrl+Alt+4"
+			},
+			"description": "."
+		},
+		"tab-jump-right": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+6",
+				"linux": "Ctrl+Alt+6"
+			},
+			"description": "."
 		}
 	}
 }
