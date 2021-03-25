@@ -458,13 +458,28 @@ function getCurrentTab() {
 	browser.browserAction.setBadgeTextColor({ color: "white" });
 
 	browser.commands.onCommand.addListener((command) => {
-		if (command === "move-tabs") {
-			getCurrentTab().then((tab) => {
-				const lastActiveWindow = [...lastFocusedWindow].reverse()[1];
-				if (tab.length > 0 && lastActiveWindow > 0) {
-					moveTabs(tab[0], lastActiveWindow);
-				}
-			});
+		switch (command) {
+			case "move-tabs": {
+				getCurrentTab().then((tab) => {
+					const lastActiveWindow = [...lastFocusedWindow].reverse()[1];
+					if (tab.length > 0 && lastActiveWindow > 0) {
+						moveTabs(tab[0], lastActiveWindow);
+					}
+				});
+				break;
+			}
+			case "tab-jump-right": {
+				navigateToTab(1);
+				break;
+			}
+			case "tab-jump-left": {
+				navigateToTab(-1);
+				break;
+			}
+			case "move-current-tab-last": {
+				moveTabToEnd();
+				break;
+			}
 		}
 	});
 
@@ -480,20 +495,6 @@ function getCurrentTab() {
 		}
 		if (showLastWindowIDBadge) {
 			setBadgeText([...lastFocusedWindow][0]);
-		}
-	});
-})();
-
-(() => {
-	browser.commands.onCommand.addListener((command) => {
-		if (command === "tab-jump-right") {
-			navigateToTab(1);
-		}
-		else if (command === "tab-jump-left") {
-			navigateToTab(-1);
-		}
-		else if (command === "move-current-tab-last") {
-			moveTabToEnd();
 		}
 	});
 })();
