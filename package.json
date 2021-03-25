@@ -1,7 +1,7 @@
 {
 	"name": "tab-mover-alternative",
 	"description": "tab mover addon modificaiton for personal use only",
-	"version": "0.8.6",
+	"version": "0.8.7",
 	"license": "MPL-2.0",
 	"scripts": {
 		"debug": "web-ext run",

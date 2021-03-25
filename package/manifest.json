@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Tab Mover Alternative",
-	"version": "0.8.6",
+	"version": "0.8.7",
 	"description": "Modified version of 'Tab Mover' addon by Guido Berhoerster. ",
 	"author": "Guido Berhoerster, Wenereth Arkhilmor",
 	"browser_specific_settings": {
