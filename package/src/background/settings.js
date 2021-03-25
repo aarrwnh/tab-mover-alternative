@@ -8,14 +8,17 @@ const settings = modules.settings = (function () {
 		showLastWindowIDBadge: false,
 		moveableContainers: [],
 		tabTravelDistance: 0,
-		// debugMode: false
+		debugMode: false
 	};
 
 	const _settings = {};
 
 	Object.defineProperty(_settings, "reset", {
 		enumerable: false,
-		value: () => browser.storage.local.set(DEFAULT)
+		value: () => {
+			browser.storage.local.clear();
+			browser.storage.local.set(DEFAULT);
+		}
 	});
 
 	(async () => {
@@ -30,11 +33,11 @@ const settings = modules.settings = (function () {
 
 		// TODO: temp fix for when ?
 		await browser.storage.local.get()
-			.then(async (result) => {
+			.then((result) => {
 				const currentSettings = Object.keys(result);
 				if (currentSettings.length === 0
 					|| currentSettings.length !== Object.keys(_settings).length) {
-					await _settings.reset();
+					_settings.reset();
 				}
 			});
 	})();

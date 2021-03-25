@@ -23,6 +23,7 @@ async function saveOptions(e) {
 					opts[el.id] = Number(el.value);
 					break;
 				}
+
 				case "hidden": {
 					if (el.id === "moveableContainers") {
 						const identities = await getIdentities();
@@ -161,6 +162,7 @@ function createContainerList(identities, el) {
 }
 
 async function setCurrentChoice(result) {
+
 	opts = result;
 
 	for (let [key, val] of Object.entries(result)) {
@@ -208,4 +210,8 @@ async function restoreOptions() {
 
 	document.addEventListener("DOMContentLoaded", restoreOptions);
 	document.querySelector("form").addEventListener("submit", saveOptions);
+	document.querySelector("#reset").addEventListener("click", () => {
+		browser.storage.local.clear();
+		browser.runtime.reload();
+	});
 })();

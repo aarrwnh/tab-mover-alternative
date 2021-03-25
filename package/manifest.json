@@ -57,14 +57,21 @@
 				"default": "Ctrl+Alt+4",
 				"linux": "Ctrl+Alt+4"
 			},
-			"description": "."
+			"description": "Jump by x tabs to left."
 		},
 		"tab-jump-right": {
 			"suggested_key": {
 				"default": "Ctrl+Alt+6",
 				"linux": "Ctrl+Alt+6"
 			},
-			"description": "."
+			"description": "Jump by x tabs to right."
+		},
+		"move-current-tab-last": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+5",
+				"linux": "Ctrl+Alt+5"
+			},
+			"description": "Move current tab last."
 		}
 	}
 }

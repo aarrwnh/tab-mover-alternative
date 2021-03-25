@@ -17,7 +17,28 @@ var windowMenuIds = [];
 var lastMenuInstanceId = 0;
 var nextMenuInstanceId = 1;
 
+function log(msg) {
+	if (settings.debugMode) {
+		console.log(msg);
+	}
+}
+
+/** Move current (unpinned) tab to the end. */
+function moveTabToEnd() {
+	getCurrentTab()
+		.then((tabs) => {
+			const currentTab = tabs[0];
+
+			if (!currentTab) return;
+
+			browser.tabs.move(currentTab.id, { index: -1 });
+
+			log(`moving tab#${ currentTab.id } from index ${ currentTab.index } to #${ -1 }`);
+		});
+}
+
 /**
+ * Move left/right over more tabs than ctrl+tab.
  * @param {1 | -1} direction 
  */
 function navigateToTab(direction) {
@@ -44,9 +65,7 @@ function navigateToTab(direction) {
 			.then((targetTab) => {
 				if (targetTab.length !== 1) return;
 
-				browser.tabs.update(targetTab[0].id, {
-					active: true
-				});
+				browser.tabs.update(targetTab[0].id, { active: true });
 			});
 	});
 }
@@ -466,13 +485,15 @@ function getCurrentTab() {
 })();
 
 (() => {
-
 	browser.commands.onCommand.addListener((command) => {
 		if (command === "tab-jump-right") {
 			navigateToTab(1);
 		}
 		else if (command === "tab-jump-left") {
 			navigateToTab(-1);
+		}
+		else if (command === "move-current-tab-last") {
+			moveTabToEnd();
 		}
 	});
 })();
