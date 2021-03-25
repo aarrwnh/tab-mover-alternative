@@ -38,9 +38,11 @@ const settings = modules.settings = (function () {
 	// event listeners
 	function updateSettings(changes, areaName) {
 		if (areaName === "local") {
-			Object.keys(settings)
-				.filter((key) => changes[key] !== undefined)
-				.forEach((key) => settings[key] = changes[key].newValue);
+			Object.keys(settings).forEach((key) => {
+				if (changes[key] !== undefined) {
+					settings[key] = changes[key].newValue;
+				}
+			});
 		}
 	}
 

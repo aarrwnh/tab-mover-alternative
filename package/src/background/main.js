@@ -34,7 +34,7 @@ function createMenuItem(createProperties) {
  * @param {number[]} tabs 
  */
 async function moveToWindow(targetWindowId, tabs) {
-	if (targetWindowId < 1) {
+	if (targetWindowId === 0) {
 		const newWindow = await browser.windows.create({
 			tabId: tabs.pop()
 		});
@@ -67,28 +67,27 @@ async function moveTabs(tab, targetWindowId, switchToActiveTab = false) {
 
 	let activeTab = selectedTabs.find((tab) => tab.active);
 
-	const cookieIDs = [];
-
 	const filteredTabs = selectedTabs.reduce((o, tab) => {
 		if (!(tab.cookieStoreId in o)) {
 			o[tab.cookieStoreId] = [];
-			cookieIDs.push(tab.cookieStoreId);
 		}
 		return o[tab.cookieStoreId].push(tab.id), o;
 	}, {});
 
+	const cookieIDs = Object.keys(filteredTabs);
+	const defaultTabIdx = cookieIDs.indexOf("firefox-default");
+
+	if (cookieIDs.length > 1 && defaultTabIdx !== -1) {
+		// when selected tabs are mixed,
+		// handle just containered tabs first on first click
+		delete filteredTabs["firefox-default"];
+		cookieIDs.splice(defaultTabIdx, 1);
+	}
+
 	for (const cookieId of cookieIDs) {
-		const tabs = filteredTabs[cookieId];
-
-		if (cookieId === "firefox-default" && cookieIDs.length > 1) {
-			// when selected tabs are mixed,
-			// handle just containered tabs first on first click
-			break;
-		}
-
 		moveToWindow(
-			moveableContainers.includes(cookieId) ? -3 : targetWindowId,
-			tabs
+			moveableContainers.includes(cookieId) ? 0 : targetWindowId,
+			filteredTabs[cookieId]
 		);
 	}
 
@@ -276,18 +275,18 @@ async function updateIconBadge(id) {
 /**
  * @returns {Promise<browser.windows.Window>}
  */
-async function getCurrentWindow() {
+function getCurrentWindow() {
 	return browser.windows.getCurrent();
 }
 
 /**
  * @returns {Promise<browser.tabs.Tab[]>}
  */
-async function getCurrentTab() {
-	return getCurrentWindow()
-		.then((currentWindow) => {
-			return browser.tabs.query({ windowId: currentWindow.id, active: true });
-		});
+function getCurrentTab() {
+	return browser.tabs.query({
+		active: true,
+		windowId: browser.windows.WINDOW_ID_CURRENT
+	});
 }
 
 (() => {
@@ -375,10 +374,12 @@ async function getCurrentTab() {
 	}
 
 	function onFocusChanged(id) {
-		if (id < 1) return;
+		if (id === browser.windows.WINDOW_ID_NONE) return;
 
 		browser.windows.get(id)
-			.then(() => {
+			.then((window) => {
+				if (window.type !== "normal") return;
+
 				if (id > 0) {
 					const last = [...lastFocusedWindow][lastFocusedWindow.size - 1];
 					if (last !== id) {
