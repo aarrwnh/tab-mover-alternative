@@ -46,28 +46,20 @@ function navigateToTab(direction) {
 
 	if (tabTravelDistance < 2) return;
 
-	getCurrentTab().then((currentTab) => {
-		if (currentTab.length !== 1) return;
-
-		const index = currentTab[0].index;
-		const jumpToIndex = direction === 1
-			? index + tabTravelDistance
-			: direction === -1
-				? index - tabTravelDistance
-				: -1;
-
-		if (jumpToIndex < 0) return;
-
-		browser.tabs.query({
-			windowId: browser.windows.WINDOW_ID_CURRENT,
-			index: jumpToIndex
-		})
-			.then((targetTab) => {
-				if (targetTab.length !== 1) return;
-
-				browser.tabs.update(targetTab[0].id, { active: true });
-			});
-	});
+	browser.tabs.query({
+		windowId: browser.windows.WINDOW_ID_CURRENT,
+		hidden: false
+	})
+		.then((tabs) => {
+			const currentTabIdx = tabs.findIndex((tab) => tab.active);
+			const targetIdx = currentTabIdx + (direction * tabTravelDistance);
+			const normalizeTargetIdx = targetIdx <= 0
+				? 0
+				: targetIdx > tabs.length - 1
+					? tabs.length - 1
+					: targetIdx;
+			browser.tabs.update(tabs[normalizeTargetIdx].id, { active: true });
+		});
 }
 
 function createMenuItem(createProperties) {
