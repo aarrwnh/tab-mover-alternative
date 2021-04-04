@@ -72,6 +72,13 @@
 				"linux": "Ctrl+Alt+5"
 			},
 			"description": "Move current tab last."
+		},
+		"goto-last-open-tab": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+7",
+				"linux": "Ctrl+Alt+7"
+			},
+			"description": "Go to last recently opened tab (not navigated)."
 		}
 	}
 }

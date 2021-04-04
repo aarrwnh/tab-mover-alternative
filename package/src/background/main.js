@@ -53,11 +53,7 @@ function navigateToTab(direction) {
 		.then((tabs) => {
 			const currentTabIdx = tabs.findIndex((tab) => tab.active);
 			const targetIdx = currentTabIdx + (direction * tabTravelDistance);
-			const normalizeTargetIdx = targetIdx <= 0
-				? 0
-				: targetIdx > tabs.length - 1
-					? tabs.length - 1
-					: targetIdx;
+			const normalizeTargetIdx = Math.max(0, Math.min(targetIdx, tabs.length - 1));
 			browser.tabs.update(tabs[normalizeTargetIdx].id, { active: true });
 		});
 }
@@ -318,6 +314,27 @@ async function updateIconBadge(id) {
 })();
 
 /**
+ * @returns {Promise<void>}
+ */
+async function openLastRecentTab() {
+	const { recentTabTimeout } = settings;
+
+	if (recentTabTimeout < 1) return;
+
+	return browser.tabs.query({ windowId: browser.windows.WINDOW_ID_CURRENT, hidden: false })
+		.then((tabs) => {
+			const now = new Date().getTime();
+			const sorted = tabs
+				.sort((a, b) => { return b.id - a.id; })
+				.filter((tab) => now - tab.lastAccessed < recentTabTimeout * 1000);
+
+			if (sorted[0]) {
+				browser.tabs.update(sorted[0].id, { active: true });
+			}
+		});
+}
+
+/**
  * @returns {Promise<browser.windows.Window>}
  */
 function getCurrentWindow() {
@@ -360,7 +377,10 @@ function getCurrentTab() {
 	}
 
 	browser.commands.onCommand.addListener((command) => {
-		if (command === "last-active-tab") {
+		if (command === "goto-last-open-tab") {
+			openLastRecentTab();
+		}
+		else if (command === "last-active-tab") {
 			getCurrentWindow().then((currentWindow) => {
 				const id = currentWindow.id;
 				if (prevFocusedTabs.has(id)) {
@@ -369,7 +389,6 @@ function getCurrentTab() {
 			});
 		}
 	});
-
 })();
 
 (async () => {

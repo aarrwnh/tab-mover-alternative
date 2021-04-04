@@ -8,7 +8,8 @@ const settings = modules.settings = (function () {
 		showLastWindowIDBadge: false,
 		moveableContainers: [],
 		tabTravelDistance: 0,
-		debugMode: false
+		debugMode: false,
+		recentTabTimeout: 3600
 	};
 
 	const _settings = {};
