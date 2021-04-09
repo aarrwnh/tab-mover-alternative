@@ -10,12 +10,14 @@
 
 "use strict";
 
+const { WINDOW_ID_CURRENT, WINDOW_ID_NONE } = browser.windows;
 const BADGE_COLOR_DEFAULT = "royalblue";
 const BADGE_COLOR_LAST_FOCUS = "red";
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "ftp:"]);
-var windowMenuIds = [];
-var lastMenuInstanceId = 0;
-var nextMenuInstanceId = 1;
+
+let windowMenuIds = [];
+let lastMenuInstanceId = 0;
+let nextMenuInstanceId = 1;
 
 function log(msg) {
 	if (settings.debugMode) {
@@ -47,7 +49,7 @@ function navigateToTab(direction) {
 	if (tabTravelDistance < 2) return;
 
 	browser.tabs.query({
-		windowId: browser.windows.WINDOW_ID_CURRENT,
+		windowId: WINDOW_ID_CURRENT,
 		hidden: false
 	})
 		.then((tabs) => {
@@ -321,12 +323,15 @@ async function openLastRecentTab() {
 
 	if (recentTabTimeout < 1) return;
 
-	return browser.tabs.query({ windowId: browser.windows.WINDOW_ID_CURRENT, hidden: false })
+	return browser.tabs.query({ windowId: WINDOW_ID_CURRENT, hidden: false })
 		.then((tabs) => {
 			const now = new Date().getTime();
+
 			const sorted = tabs
 				.sort((a, b) => { return b.id - a.id; })
-				.filter((tab) => now - tab.lastAccessed < recentTabTimeout * 1000);
+				.filter((tab) => {
+					return !tab.active && now - recentTabTimeout * 1000 - tab.lastAccessed < 0;
+				});
 
 			if (sorted[0]) {
 				browser.tabs.update(sorted[0].id, { active: true });
@@ -347,8 +352,29 @@ function getCurrentWindow() {
 function getCurrentTab() {
 	return browser.tabs.query({
 		active: true,
-		windowId: browser.windows.WINDOW_ID_CURRENT
+		windowId: WINDOW_ID_CURRENT
 	});
+}
+
+function sortSelectedTabs() {
+	browser.tabs.query({
+		windowId: WINDOW_ID_CURRENT,
+		highlighted: true
+	})
+		.then((selectedTabs) => {
+			if (selectedTabs.length > 2) {
+				selectedTabs.sort((a, b) => {
+					const aTitle = a.title.toLowerCase();
+					const bTitle = b.title.toLowerCase();
+					if (aTitle < bTitle) return -1;
+					if (aTitle > bTitle) return 1;
+					return 0;
+				});
+				browser.tabs.move(selectedTabs.map((t) => t.id), {
+					index: selectedTabs[0].index
+				});
+			}
+		});
 }
 
 (() => {
@@ -387,6 +413,9 @@ function getCurrentTab() {
 					switchToPrevTabInWindow(prevFocusedTabs.get(id));
 				}
 			});
+		}
+		else if (command === "sort-selected-tabs") {
+			sortSelectedTabs();
 		}
 	});
 })();
@@ -438,7 +467,7 @@ function getCurrentTab() {
 	}
 
 	function onFocusChanged(id) {
-		if (id === browser.windows.WINDOW_ID_NONE) return;
+		if (id === WINDOW_ID_NONE) return;
 
 		browser.windows.get(id)
 			.then((window) => {

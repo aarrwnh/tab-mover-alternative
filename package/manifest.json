@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Tab Mover Alternative",
-	"version": "0.8.7",
+	"version": "0.8.9",
 	"description": "Modified version of 'Tab Mover' addon by Guido Berhoerster. ",
 	"author": "Guido Berhoerster, Wenereth Arkhilmor",
 	"browser_specific_settings": {
@@ -79,6 +79,13 @@
 				"linux": "Ctrl+Alt+7"
 			},
 			"description": "Go to last recently opened tab (not navigated)."
+		},
+		"sort-selected-tabs": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+1",
+				"linux": "Ctrl+Alt+1"
+			},
+			"description": "Sort selected tabs by title."
 		}
 	}
 }
