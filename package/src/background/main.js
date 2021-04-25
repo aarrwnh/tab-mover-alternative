@@ -300,16 +300,16 @@ async function updateIconBadge(id) {
 		// create submenus
 		createMenuItem({
 			id: "move-menu",
-			title: browser.i18n.getMessage("moveToWindowMenu"),
+			title: browser.i18n.getMessage("extensionName"),
 			enabled: false,
 			contexts: ["tab"]
 		}),
-		createMenuItem({
-			id: "reopen-menu",
-			title: browser.i18n.getMessage("reopenInWindowMenu"),
-			enabled: false,
-			contexts: ["tab"]
-		})
+		// createMenuItem({
+		// 	id: "reopen-menu",
+		// 	title: browser.i18n.getMessage("reopenInWindowMenu"),
+		// 	enabled: false,
+		// 	contexts: ["tab"]
+		// })
 	]);
 	browser.menus.onShown.addListener(onMenuShown);
 	browser.menus.onHidden.addListener(onMenuHidden);
