@@ -112,6 +112,21 @@ function createNotice(msg) {
 	});
 }
 
+
+/**
+ * @param {browser.downloads._OnChangedDownloadDelta} downloadDelta 
+ * @param {number} downloadId 
+ */
+function onDownloadEnd(downloadDelta, downloadId) {
+	if (
+		downloadDelta.id === downloadId
+		&& downloadDelta.state.current !== "in_progress"
+	) {
+		browser.downloads.onChanged.removeListener(onDownloadEnd);
+		browser.downloads.erase({ id: downloadDelta.id });
+	}
+}
+
 /**
  * @param {(browser.tabs.Tab & RuleType)[]} tabs
  */
@@ -120,55 +135,47 @@ async function saveTabs(tabs) {
 	const completed = [];
 
 	for (const tab of tabs) {
+		const { url, target, folder } = tab;
 
-		const matched = tab.url.match(new RegExp(tab.target));
+		const matched = url.match(new RegExp(target));
 
-		if (matched !== null) {
-			const path = tab.folder.replace(/\$([0-9]+);/g, function (_, m) {
-				// $1;, $2;, ... $n; in the folder path will be replaced
-				// by corresponding match count in the `target` regex
-				const index = Number(m);
+		if (matched === null)
+			break;
 
-				if (typeof index === "number" && matched[index]) {
-					return swapIllegalCharacters(matched[index]);
-				}
-				else {
-					throw new Error("something went wrong");
-				}
+		const path = folder.replace(/\$([0-9]+);/g, function (_, m) {
+			// $1;, $2;, ... $n; in the folder path will be replaced
+			// by corresponding match count in the `target` regex
+			const index = Number(m);
+
+			if (typeof index === "number" && matched[index]) {
+				return swapIllegalCharacters(matched[index]);
+			}
+			else {
+				throw new Error("something went wrong");
+			}
+		});
+
+		const filename = [
+			RELATIVE_PARENT_FOLDER,
+			decodeURIComponent(path),
+			"\\",
+			swapIllegalCharacters(new URL(url).pathname.split("/").pop())
+		].join("");
+
+		const downloadId = await browser.downloads.download({ url, filename });
+
+		if (tab.erase) {
+			browser.downloads.onChanged.addListener(function (delta) {
+				onDownloadEnd(delta, downloadId);
 			});
-
-			const filename = [
-				RELATIVE_PARENT_FOLDER,
-				decodeURIComponent(path),
-				"\\",
-				swapIllegalCharacters(new URL(tab.url).pathname.split("/").pop())
-			].join("");
-
-			await browser.downloads.download({
-				url: tab.url,
-				filename,
-			})
-				.then(function (id) {
-					function listener(downloadDelta) {
-						if (
-							downloadDelta.id === id
-							&& downloadDelta.state.current !== "in_progress"
-						) {
-							browser.downloads.onChanged.removeListener(listener);
-							browser.downloads.erase({ id: downloadDelta.id });
-						}
-					}
-
-					if (tab.erase) {
-						browser.downloads.onChanged.addListener(listener);
-					}
-
-					completed.push(tab.id);
-				});
 		}
+
+		completed.push(tab.id);
+
+		console.log("saved:", tab.url);
 	}
 
-	const saveMsg = `Saved ${ completed.length } tab(s)`;
+	const saveMsg = `Saved images from ${ completed.length } tab(s)`;
 
 	// close tabs
 	if (completed.length > 0) {
