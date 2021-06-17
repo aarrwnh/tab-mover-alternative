@@ -150,7 +150,6 @@ function createNotice(msg) {
 	});
 }
 
-
 /**
  * @param {browser.downloads._OnChangedDownloadDelta} downloadDelta 
  * @param {number} downloadId 
@@ -210,7 +209,7 @@ async function saveTabs(tabs) {
 
 		completed.push(tab.id);
 
-		console.log("saved:", tab.url);
+		console.log("saved image:", tab.url);
 	}
 
 	const saveMsg = `Saved images from ${ completed.length } tab(s)`;
@@ -248,5 +247,8 @@ browser.menus.create({
 	title: "Save images from tabs",
 	enabled: true,
 	contexts: ["browser_action"],
-	onclick: saveImages
+	onclick: saveImages,
+	icons: {
+		32: "src/icons/fi-br-picture.svg"
+	}
 });
