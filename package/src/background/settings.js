@@ -9,7 +9,8 @@ const settings = modules.settings = (function () {
 		moveableContainers: [],
 		tabTravelDistance: 0,
 		debugMode: false,
-		recentTabTimeout: 3600
+		recentTabTimeout: 3600,
+		movePinnedTabs: false,
 	};
 
 	const _settings = {};

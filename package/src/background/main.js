@@ -110,6 +110,14 @@ async function moveTabs(tab, targetWindowId, switchToActiveTab = false) {
 
 	let activeTab = selectedTabs.find((tab) => tab.active);
 
+	// NOTE:
+	// added in original addon, version-9 https://hg.guido-berhoerster.org/addons/firefox-addons/tab-mover/rev/aaed574396b8
+	// kind of don't see the point
+	// unpin tabs before moving, this matches the built-in behavior
+	// let unpinningTabs = selectedTabs.flatMap((tab) =>
+	// 	tab.pinned ? [browser.tabs.update(tab.id, { pinned: false })] : []);
+	// await Promise.all(unpinningTabs.map((p) => p.catch((e) => e)));
+
 	const filteredTabs = selectedTabs.reduce((o, tab) => {
 		if (!(tab.cookieStoreId in o)) {
 			o[tab.cookieStoreId] = [];
