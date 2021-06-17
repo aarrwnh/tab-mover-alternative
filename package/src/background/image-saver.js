@@ -56,14 +56,21 @@ function filterTabs(tabs) {
 }
 
 /**
+ * Get all opened tabs prioritizing highlighted ones. 
  * @return {Promise<browser.tabs.Tab[]>}
  */
-async function getOpenedTabs() {
-	return await browser.tabs.query({
+async function getActiveTabsInWin() {
+	const tabs = await browser.tabs.query({
 		discarded: false,
 		hidden: false,
-		windowId: WINDOW_ID_CURRENT
+		windowId: WINDOW_ID_CURRENT,
 	});
+
+	const filterNotHighlighted = tabs.filter((tab) => tab.highlighted);
+
+	return filterNotHighlighted.length > 1
+		? filterNotHighlighted
+		: tabs;
 }
 
 const illegalCharacters = {
@@ -191,17 +198,18 @@ async function saveTabs(tabs) {
 	}
 }
 
-async function saveImages() {
-	getOpenedTabs().then((tabs) => {
-		const filtered = filterTabs(tabs);
+function saveImages() {
+	getActiveTabsInWin()
+		.then(function (tabs) {
+			const filtered = filterTabs(tabs);
 
-		if (filtered.length > 0) {
-			saveTabs(filtered);
-		}
-		else {
-			createNotice("Nothing to save.");
-		}
-	});
+			if (filtered.length > 0) {
+				saveTabs(filtered);
+			}
+			else {
+				createNotice("Nothing to save.");
+			}
+		});
 }
 
 browser.menus.create({
