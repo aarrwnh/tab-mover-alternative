@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Tab Mover Alternative",
-	"version": "0.8.10",
+	"version": "0.8.11",
 	"description": "Modified version of 'Tab Mover' addon by Guido Berhoerster. ",
 	"author": "Guido Berhoerster, Wenereth Arkhilmor",
 	"browser_specific_settings": {
@@ -20,12 +20,15 @@
 		"contextMenus",
 		"menus",
 		"tabs",
-		"storage"
+		"storage",
+		"downloads",
+		"notifications"
 	],
 	"background": {
 		"scripts": [
 			"src/background/settings.js",
-			"src/background/main.js"
+			"src/background/main.js",
+			"src/background/image-saver.js"
 		]
 	},
 	"browser_action": {

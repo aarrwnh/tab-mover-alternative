@@ -506,6 +506,7 @@ function sortSelectedTabs() {
 	browser.browserAction.setBadgeTextColor({ color: "white" });
 
 	browser.commands.onCommand.addListener((command) => {
+		console.log(command);
 		switch (command) {
 			case "move-tabs": {
 				getCurrentTab().then((tab) => {
