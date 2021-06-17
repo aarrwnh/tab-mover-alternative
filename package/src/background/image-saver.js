@@ -12,6 +12,10 @@
  * @property {boolean} erase Whether to remove download from downloads.
  */
 
+const config = {
+	closeOnComplete: true,
+};
+
 const RELATIVE_PARENT_FOLDER = "baazacuda\\";
 
 /**
@@ -28,7 +32,7 @@ const lookupRules = [
 ];
 
 /**
- * Filter nonhidden tabs in the current window that match the regex.
+ * Filter tabs in the current window that match the regex.
  * @param {browser.tabs.Tab[]} tabs
  * @return {(browser.tabs.Tab & RuleType)[]}
  */
@@ -36,11 +40,13 @@ function filterTabs(tabs) {
 	const filtered = [];
 
 	for (const tab of tabs) {
-		for (const t of lookupRules) {
-			const regex = new RegExp(t.target);
+		for (const rule of lookupRules) {
+			if (!rule.target || !rule.folder) break;
+
+			const regex = new RegExp(rule.target);
 
 			if (regex.test(tab.url)) {
-				filtered.push({ ...tab, ...t });
+				filtered.push({ ...tab, ...rule });
 				break;
 			}
 		}
@@ -54,6 +60,7 @@ function filterTabs(tabs) {
  */
 async function getOpenedTabs() {
 	return await browser.tabs.query({
+		discarded: false,
 		hidden: false,
 		windowId: WINDOW_ID_CURRENT
 	});
@@ -108,21 +115,21 @@ function createNotice(msg) {
  * @param {(browser.tabs.Tab & RuleType)[]} tabs
  */
 async function saveTabs(tabs) {
+	/** @type {number[]} */
+	const completed = [];
+
 	for (const tab of tabs) {
 
-		const regex = new RegExp(tab.target);
-		const match = tab.url.match(regex);
+		const matched = tab.url.match(new RegExp(tab.target));
 
-		if (match !== null) {
-
+		if (matched !== null) {
 			const path = tab.folder.replace(/\$([0-9]+);/g, function (_, m) {
 				// $1;, $2;, ... $n; in the folder path will be replaced
 				// by corresponding match count in the `target` regex
-
 				const index = Number(m);
 
-				if (typeof index === "number" && match[index]) {
-					return swapIllegalCharacters(match[index]);
+				if (typeof index === "number" && matched[index]) {
+					return swapIllegalCharacters(matched[index]);
 				}
 				else {
 					throw new Error("something went wrong");
@@ -149,21 +156,30 @@ async function saveTabs(tabs) {
 							browser.downloads.onChanged.removeListener(listener);
 							browser.downloads.erase({ id: downloadDelta.id });
 						}
-
-						createNotice(`Saved: ${ filename }`);
 					}
 
 					if (tab.erase) {
 						browser.downloads.onChanged.addListener(listener);
 					}
+
+					completed.push(tab.id);
 				});
 		}
+	}
 
-		// close tabs
-		browser.tabs.remove(tabs.map((tab) => tab.id))
-			.then(function () {
-				createNotice(`Saved ${ tabs.length } tab(s)`);
-			});
+	const saveMsg = `Saved ${ completed.length } tab(s)`;
+
+	// close tabs
+	if (completed.length > 0) {
+		if (config.closeOnComplete) {
+			browser.tabs.remove(completed)
+				.then(function () {
+					createNotice(saveMsg);
+				});
+		}
+		else {
+			createNotice(saveMsg);
+		}
 	}
 }
 
