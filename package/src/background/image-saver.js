@@ -107,7 +107,8 @@ function createNotice(msg) {
 	browser.notifications.create({
 		title: "Tab image saver",
 		message: msg,
-		type: "basic"
+		type: "basic",
+		iconUrl: "src/icons/web-browser-active.svg",
 	});
 }
 
@@ -186,7 +187,13 @@ async function saveTabs(tabs) {
 async function saveImages() {
 	getOpenedTabs().then((tabs) => {
 		const filtered = filterTabs(tabs);
-		saveTabs(filtered);
+
+		if (filtered.length > 0) {
+			saveTabs(filtered);
+		}
+		else {
+			createNotice("Nothing to save.");
+		}
 	});
 }
 
