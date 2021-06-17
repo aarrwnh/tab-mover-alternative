@@ -4,6 +4,27 @@
 // TODO: 
 // make a "matching test" for regex on settings page
 
+const config = {
+	closeOnComplete: true,
+	formatDateMonth: true, // 2021-jan-2 => 2021-01-02
+};
+
+const RELATIVE_PARENT_FOLDER = "baazacuda\\";
+const illegalCharacters = {
+	"\"": "\u201d", // ”
+	"*": "\uff0a",  // ＊
+	"/": "\uff0f", // ／
+	":": "\uff1a", // ：
+	"<": "\uff1c",  // ＜
+	">": "\uff1e",  // ＞
+	"?": "\uff1f", // ？
+	"\\": "\uff3c", // ＼
+
+	"\u3000": "\x20", // full-width space
+};
+const RE_ILLEGAL = new RegExp("[" + Object.keys(illegalCharacters).map((x) => "\\" + x).join("") + "]", "g");
+const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
 /**
  * @typedef {object} RuleType
  * @property {string} name
@@ -11,13 +32,6 @@
  * @property {string} folder Relative path
  * @property {boolean} erase Whether to remove download from downloads.
  */
-
-const config = {
-	closeOnComplete: true,
-};
-
-const RELATIVE_PARENT_FOLDER = "baazacuda\\";
-
 /**
  * TODO: move to settings page
  * @type {RuleType[]}
@@ -28,7 +42,14 @@ const lookupRules = [
 		target: "^https?://pbs.twimg.com/media/[^/]+#user=([^>#]+)",
 		folder: "pic\\twitter\\$1;",
 		erase: true,
-	}
+	},
+	{
+		// http://cloud2.akibablog.net/2021/may/31/wh33/250.jpg
+		name: "akibablog",
+		target: "^http://cloud[0-9].akibablog.net/([0-9]+)/([\\w\\d-]+)/([0-9]+)/([\\w\\d]+)",
+		folder: "pic\\akibablog\\$1;-$2;-$3;__$4;",
+		erase: true,
+	},
 ];
 
 /**
@@ -73,20 +94,29 @@ async function getActiveTabsInWin() {
 		: tabs;
 }
 
-const illegalCharacters = {
-	"\"": "\u201d", // ”
-	"*": "\uff0a",  // ＊
-	"/": "\uff0f", // ／
-	":": "\uff1a", // ：
-	"<": "\uff1c",  // ＜
-	">": "\uff1e",  // ＞
-	"?": "\uff1f", // ？
-	"\\": "\uff3c", // ＼
+function normalizePath(str) {
+	str = decodeURIComponent(str);
 
-	"\u3000": "\x20", // full-width space
-};
+	// format date to a "readable" format
+	if (config.formatDateMonth) {
+		str = str.replace(
+			/([0-9]{4})-([\w]+)-([0-9]+)/,
+			function (_, year, month, day) {
+				const index = months.indexOf(month);
+				if (index !== -1) {
+					return [
+						year,
+						String(index + 1).padStart(2, "0"),
+						day.padStart(2, "0")
+					].join("-");
+				}
+				return _;
+			}
+		);
+	}
 
-const RE_ILLEGAL = new RegExp("[" + Object.keys(illegalCharacters).map((x) => "\\" + x).join("") + "]", "g");
+	return str;
+}
 
 /**
  * @param {string} str 
@@ -102,9 +132,10 @@ function normalizeFilename(str) {
  * @returns {string}
  */
 function swapIllegalCharacters(str) {
-	return normalizeFilename(str).replace(RE_ILLEGAL, function (m) {
-		return illegalCharacters[m];
-	});
+	return normalizeFilename(str)
+		.replace(RE_ILLEGAL, function (m) {
+			return illegalCharacters[m];
+		});
 }
 
 /**
@@ -164,7 +195,7 @@ async function saveTabs(tabs) {
 
 		const filename = [
 			RELATIVE_PARENT_FOLDER,
-			decodeURIComponent(path),
+			normalizePath(path),
 			"\\",
 			swapIllegalCharacters(new URL(url).pathname.split("/").pop())
 		].join("");
