@@ -185,7 +185,8 @@ async function saveTabs(tabs) {
 			const index = Number(m);
 
 			if (typeof index === "number" && matched[index]) {
-				return swapIllegalCharacters(matched[index]);
+				return swapIllegalCharacters(matched[index])
+					.replace(/[.]{2,}/g, "_");
 			}
 			else {
 				throw new Error("something went wrong");
@@ -199,33 +200,33 @@ async function saveTabs(tabs) {
 			swapIllegalCharacters(new URL(url).pathname.split("/").pop())
 		].join("");
 
-		const downloadId = await browser.downloads.download({ url, filename });
 
-		if (tab.erase) {
-			browser.downloads.onChanged.addListener(function (delta) {
-				onDownloadEnd(delta, downloadId);
-			});
+		try {
+			const downloadId = await browser.downloads.download({ url, filename })
+				.catch(function (err) {
+					throw new Error(err.message + ": " + filename);
+				});
+
+			if (tab.erase) {
+				browser.downloads.onChanged.addListener(function (delta) {
+					onDownloadEnd(delta, downloadId);
+				});
+			}
+
+			completed.push(tab.id);
 		}
-
-		completed.push(tab.id);
+		catch (err) {
+			console.error(err);
+		}
 
 		console.log("saved image:", tab.url);
 	}
 
-	const saveMsg = `Saved images from ${ completed.length } tab(s)`;
-
 	// close tabs
-	if (completed.length > 0) {
-		if (config.closeOnComplete) {
-			browser.tabs.remove(completed)
-				.then(function () {
-					createNotice(saveMsg);
-				});
-		}
-		else {
-			createNotice(saveMsg);
-		}
-	}
+	browser.tabs.remove(config.closeOnComplete ? completed : [])
+		.then(function () {
+			createNotice(`Saved images from ${ completed.length } tab(s)`);
+		});
 }
 
 function saveImages() {
