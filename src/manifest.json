@@ -11,7 +11,7 @@
 		}
 	},
 	"icons": {
-		"48": "src/icons/web-browser-active.svg"
+		"48": "icons/web-browser-active.svg"
 	},
 	"default_locale": "en",
 	"permissions": [
@@ -26,19 +26,17 @@
 	],
 	"background": {
 		"scripts": [
-			"src/background/settings.js",
-			"src/background/main.js",
-			"src/background/image-saver.js"
+			"background.js"
 		]
 	},
 	"browser_action": {
 		"browser_style": true,
 		"default_icon": {
-			"32": "src/icons/web-browser-active.svg"
+			"32": "icons/web-browser-active.svg"
 		}
 	},
 	"options_ui": {
-		"page": "src/options/options.html"
+		"page": "options/options.html"
 	},
 	"commands": {
 		"last-active-tab": {
@@ -85,10 +83,24 @@
 		},
 		"sort-selected-tabs": {
 			"suggested_key": {
+				"default": "Ctrl+Alt+3",
+				"linux": "Ctrl+Alt+3"
+			},
+			"description": "Sort selected tabs by title."
+		},
+		"save-images": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+2",
+				"linux": "Ctrl+Alt+2"
+			},
+			"description": "Find and save images in the current window."
+		},
+		"save-bookmark": {
+			"suggested_key": {
 				"default": "Ctrl+Alt+1",
 				"linux": "Ctrl+Alt+1"
 			},
-			"description": "Sort selected tabs by title."
+			"description": "Find and save images in the current window."
 		}
 	}
 }
