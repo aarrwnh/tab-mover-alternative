@@ -1,7 +1,7 @@
 // TODO: 
 // make a "matching test" for regex on settings page
 
-import { Download } from "../utils/Download";
+import { Downloads } from "../utils/Download";
 
 const config = {
 	closeOnComplete: true,
@@ -12,66 +12,6 @@ const RELATIVE_PARENT_FOLDER = "baazacuda";
 
 const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
-interface RuleType {
-	name: string;
-	target: string;
-	folder: string;
-	erase?: boolean;
-}
-// TODO: move to settings page
-const lookupRules: RuleType[] = [
-	{
-		name: "twitter",
-		target: "^https?://pbs.twimg.com/media/[^/]+#user=([^>#]+)",
-		folder: "pic\\twitter\\$1;"
-	},
-	{
-		// http://cloud2.akibablog.net/2021/may/31/wh33/250.jpg
-		name: "akibablog",
-		target: "^http://cloud[0-9].akibablog.net/([0-9]+)/([\\w\\d-]+)/([0-9]+)/([\\w\\d]+)",
-		folder: "pic\\akibablog\\$1;-$2;-$3;__$4;"
-	},
-	{
-		// http://www.daikikougyou.com/2021item/fuukiiin_san/fuukiiin_000.jpg
-		name: "http://www.daikikougyou.com/",
-		target: "^http://www.daikikougyou.com/([0-9]+)item/([\\d\\w_]+)/",
-		folder: "pic\\daikikougyou\\$1;_$2;"
-	},
-	{
-		// https://ogre.natalie.mu/media/news/comic/2021/0521/saekano_katoumegumi_racequeen_figure_1.jpg
-		name: "https://ogre.natalie.mu",
-		target: "^https://(?:\\w+).natalie.mu/media/news/(\\w+)/([0-9]+)/([0-9]+)/",
-		folder: "pic\\natalie.mu\\$1;\\$2;\\$3;"
-	}
-];
-
-/**
- * Filter tabs in the current window that match the regex.
- */
-function filterTabs(tabs: browser.tabs.Tab[]): (browser.tabs.Tab & RuleType)[] {
-	const filtered = [];
-
-	for (const tab of tabs) {
-		if (!tab.url) continue;
-
-		for (const rule of lookupRules) {
-			if (!rule.target || !rule.folder) break;
-
-			if (!rule.erase) {
-				rule.erase = true;
-			}
-
-			const regex = new RegExp(rule.target);
-
-			if (regex.test(tab.url)) {
-				filtered.push({ ...tab, ...rule });
-				break;
-			}
-		}
-	}
-
-	return filtered;
-}
 
 /**
  * Get all opened tabs prioritizing highlighted ones. 
@@ -139,6 +79,8 @@ function correctFolderPath(folder: string, matched: RegExpMatchArray): string {
 	return aFolderPath;
 }
 
+const downloads = new Downloads();
+
 async function saveTabs(tabs: (browser.tabs.Tab & RuleType)[]) {
 	/** @type {number[]} */
 	const completed: number[] = [];
@@ -161,8 +103,6 @@ async function saveTabs(tabs: (browser.tabs.Tab & RuleType)[]) {
 		if (matched === null)
 			break;
 
-		const download = new Download({ removeAfterComplete: tab.erase ?? true });
-
 		const filename = new URL(url).pathname.split("/").pop() ?? "";
 
 		const relativeFilePath = [
@@ -171,18 +111,21 @@ async function saveTabs(tabs: (browser.tabs.Tab & RuleType)[]) {
 			filename
 		]
 			.map(function (x) {
-				x = x.replace(/:[a-z]+/, ""); // twitter image size indicators, :orig :large ...
-				return download.normalizeFilename(x)
-					.replace(/[.]{2,}/g, "_");
+				x = x
+					.replace(/[.]{2,}/g, "_")
+					.replace(/:[a-z]+/, ""); // twitter image size indicators, :orig :large ...
+
+				return downloads._normalizeFilename(x);
+
 			})
 			.join("/");
 
 		try {
-			await download.start({
+			await downloads.start({
 				url,
 				filename: relativeFilePath,
 				conflictAction: "overwrite"
-			})
+			}, tab.erase ?? true)
 				.catch(function (err) {
 					throw new Error(err.message + ": " + relativeFilePath);
 				});
@@ -205,22 +148,52 @@ async function saveTabs(tabs: (browser.tabs.Tab & RuleType)[]) {
 		});
 }
 
-function saveImages() {
-	getActiveTabsInWin()
-		.then(function (tabs) {
-			const filtered = filterTabs(tabs);
+export default function main(settings: Settings): void {
 
-			if (filtered.length > 0) {
-				saveTabs(filtered);
+	const { imageSaverRules } = settings;
+
+	/**
+	 * Filter tabs in the current window that match the regex.
+	 */
+	function filterTabs(tabs: browser.tabs.Tab[]): (browser.tabs.Tab & RuleType)[] {
+		const filtered = [];
+
+		for (const tab of tabs) {
+			if (!tab.url) continue;
+
+			for (const rule of imageSaverRules) {
+				if (!rule.target || !rule.folder) break;
+
+				if (!rule.erase) {
+					rule.erase = true;
+				}
+
+				const regex = new RegExp(rule.target);
+
+				if (regex.test(tab.url)) {
+					filtered.push({ ...tab, ...rule });
+					break;
+				}
 			}
-			else {
-				createNotice("Nothing to save.");
-			}
-		});
-}
+		}
 
+		return filtered;
+	}
 
-export default function main(): void {
+	function saveImages() {
+		getActiveTabsInWin()
+			.then(function (tabs) {
+				const filtered = filterTabs(tabs);
+
+				if (filtered.length > 0) {
+					saveTabs(filtered);
+				}
+				else {
+					createNotice("Nothing to save.");
+				}
+			});
+	}
+
 	browser.commands.onCommand.addListener((command) => {
 		switch (command) {
 			case "save-images": {

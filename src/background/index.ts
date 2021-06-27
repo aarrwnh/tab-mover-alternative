@@ -4,5 +4,5 @@ import initBookmarkTab from "./src/components/bookmarkTab";
 import initImageSaver from "./src/components/imageSaver";
 
 initTabMover(settings);
-initBookmarkTab();
-initImageSaver();
+initBookmarkTab(settings);
+initImageSaver(settings);

@@ -1,4 +1,5 @@
-function setup() {
+export const settings = (function setup() {
+
 	const DEFAULT = { // keys are used as id selectors
 		switchToTabAfterMoving: false,
 		showLastWindowIDBadge: false,
@@ -7,9 +8,11 @@ function setup() {
 		debugMode: false,
 		recentTabTimeout: 3600,
 		movePinnedTabs: false,
+		bookmarkAlwaysToChildFolder: [],
+		imageSaverRules: []
 	};
 
-	const _settings: Partial<Settings> = {};
+	const _settings: Settings = Object.assign({});
 
 	Object.defineProperty(_settings, "reset", {
 		enumerable: false,
@@ -23,7 +26,6 @@ function setup() {
 		await browser.storage.local.get(DEFAULT)
 			.then((result) => {
 				Object.entries(result).forEach(([key, val]) => {
-					// @ts-ignore
 					_settings[key] = val;
 				});
 				return _settings;
@@ -36,19 +38,16 @@ function setup() {
 				const currentSettings = Object.keys(result);
 				if (currentSettings.length === 0
 					|| currentSettings.length !== Object.keys(_settings).length) {
-					// @ts-ignore
 					_settings.reset();
 				}
 			});
 	})();
 
-	// event listeners
 	function updateSettings(changes: { [key: string]: browser.storage.StorageChange }, areaName: string) {
 		if (areaName === "local") {
-			Object.keys(setup).forEach((key) => {
+			Object.keys(settings).forEach((key) => {
 				if (changes[key] !== undefined) {
-					// @ts-ignore
-					setup[key] = changes[key].newValue;
+					settings[key] = changes[key].newValue;
 				}
 			});
 		}
@@ -57,6 +56,4 @@ function setup() {
 	browser.storage.onChanged.addListener(updateSettings);
 
 	return _settings;
-}
-
-export const settings = setup() as Settings;
+})();

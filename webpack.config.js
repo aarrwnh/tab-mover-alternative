@@ -5,7 +5,7 @@ const TerserPlugin = require("terser-webpack-plugin")
 const WebpackHookPlugin = require("webpack-hook-plugin");
 
 /**
- * @param {process["env"]} env 
+ * @param {import("process")["env"]} _env 
  * @param {import("webpack").Configuration} argv 
  * @returns {import("webpack").Configuration}
  */
@@ -41,10 +41,15 @@ module.exports = (_env, argv) => {
 			entrypoints: false
 		},
 		output: {
-			filename: "[name].js",
-			path: path.resolve(__dirname, "dist"),
+			filename: (pathData) => {
+				return pathData.runtime === "background"
+					? "background.js"
+					: "[name]/index.js"
+			},
+			path: path.resolve(__dirname, "dist")
 		},
 		optimization: {
+			concatenateModules: false,
 			minimize: isProduction,
 			moduleIds: isProduction ? "natural" : "named",
 			removeEmptyChunks: true,

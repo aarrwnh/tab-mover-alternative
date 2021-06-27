@@ -1,5 +1,3 @@
-"use strict";
-
 let opts;
 
 function onError(error) {
@@ -19,6 +17,15 @@ async function saveOptions(e) {
 	for (const el of form.elements) {
 		if ("option" in el.dataset) {
 			switch (el.type) {
+
+				case "text": {
+					const separator = el.getAttribute("data-separator");
+					if (separator) {
+						opts[el.id] = el.value.split(separator).map((x) => x.trim());
+					}
+					break;
+				}
+
 				case "number": {
 					opts[el.id] = Number(el.value);
 					break;
@@ -174,10 +181,23 @@ async function setCurrentChoice(result) {
 			val = val || opts[key];
 
 			switch (el.type) {
+
+				case "text": {
+
+					const separator = el.getAttribute("data-separator");
+
+					if (Array.isArray(val) && separator) {
+						el.value = val.join(separator + " ");
+					}
+
+					break;
+				}
+
 				case "number": {
 					el.value = val;
 					break;
 				}
+
 				case "hidden": {
 					if (key === "moveableContainers") {
 						const identities = await getIdentities();

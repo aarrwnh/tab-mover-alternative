@@ -27,6 +27,7 @@
 			<label>
 				Tab travel distance:
 				<input type="number" id="tabTravelDistance" data-option="true" min="0" max="10">
+				<i>(set to more than 1 to work)</i>
 			</label>
 		</div>
 
@@ -38,7 +39,6 @@
 		</div>
 
 		<div class="text-input">
-			<hr>
 			Always move below containers to a new window:
 			<br>
 
@@ -55,9 +55,19 @@
 					<td id="availableContainers"></td>
 				</tr>
 			</table>
-			<hr>
+
 		</div>
 
+		<hr>
+		<h2>Bookmarks</h2>
+
+		<div class="text-input">
+			Always create subfolder and put bookmarks for the listed hostnames/domains:
+			<br>
+			<input id="bookmarkAlwaysToChildFolder" type="text" data-option="true" data-separator=",">
+		</div>
+
+		<hr>
 		<div>
 			<label>
 				<input type="checkbox" id="debugMode" data-option="true">
