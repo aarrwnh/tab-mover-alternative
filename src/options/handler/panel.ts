@@ -1,27 +1,25 @@
-let opts;
 
-function onError(error) {
+let opts: { [key: string]: any };
+
+function onError(error: string) {
 	console.log(`Error: ${ error }`);
 }
 
-/** @param {Event} e */
-async function saveOptions(e) {
+async function saveOptions(e: Event) {
 	e.preventDefault();
 
-	/** @type {HTMLFormElement} */
-	const form = e.target;
+	const form = e.target as HTMLFormElement;
+	const submitButton = form.elements.namedItem("submit") as HTMLElement;
 
-	/** @type {HTMLButtonElement} */
-	const submitButton = form.elements.submit;
-
-	for (const el of form.elements) {
+	for (const el of form.elements as unknown as NodeListOf<HTMLInputElement>) {
 		if ("option" in el.dataset) {
 			switch (el.type) {
-
 				case "text": {
 					const separator = el.getAttribute("data-separator");
 					if (separator) {
-						opts[el.id] = el.value.split(separator).map((x) => x.trim());
+						opts[el.id] = el.value
+							.split(separator)
+							.map((x) => x.trim());
 					}
 					break;
 				}
@@ -34,7 +32,8 @@ async function saveOptions(e) {
 				case "hidden": {
 					if (el.id === "moveableContainers") {
 						const identities = await getIdentities();
-						const cookieStoreIDs = identities.getContainerCookieStoreIDs(el.value);
+						const cookieStoreIDs =
+							identities.getContainerCookieStoreIDs(el.value);
 						opts[el.id] = cookieStoreIDs;
 					}
 					break;
@@ -48,7 +47,8 @@ async function saveOptions(e) {
 		}
 	}
 
-	browser.storage.local.set(opts)
+	browser.storage.local
+		.set(opts)
 		.then(() => {
 			submitButton.textContent = "Saved!";
 			setTimeout(() => {
@@ -58,20 +58,19 @@ async function saveOptions(e) {
 		.catch(console.log);
 }
 
-/**
- * 
- * @returns {Promise<{
- * 	list: browser.contextualIdentities.ContextualIdentity[];
- * 	names: string[];
- * 	cookieStoreIDs: string[];
- * 	getContainerCookieStoreIDs(cookieStoreName: string) => string[];
- * 	getContainerNames(cookieStoreIDs: string[]) => string;
- * }>}
- */
-async function getIdentities() {
-	const o = {
+async function getIdentities(): Promise<{
+	list: browser.contextualIdentities.ContextualIdentity[];
+	names: string[];
+	cookieStoreIDs: string[];
+	getContainerCookieStoreIDs(cookieStoreName: string): string[];
+	getContainerNames(cookieStoreIDs: string[]): string;
+}> {
+	const o: {
+		names: string[];
+		cookieStoreIDs: string[];
+	} = {
 		names: [],
-		cookieStoreIDs: []
+		cookieStoreIDs: [],
 	};
 
 	const identities = await browser.contextualIdentities.query({});
@@ -85,11 +84,7 @@ async function getIdentities() {
 		...o,
 		list: identities,
 
-		/**
-		 * @param {string} cookieStoreName 
-		 * @returns {string[]}
-		 */
-		getContainerCookieStoreIDs(cookieStoreName) {
+		getContainerCookieStoreIDs(cookieStoreName: string): string[] {
 			const cookieNames = cookieStoreName
 				.replace(/['"]/g, "")
 				.split(";")
@@ -97,57 +92,59 @@ async function getIdentities() {
 
 			return cookieNames
 				.map((x) => {
+					// @ts-ignore
 					const i = this.names.indexOf(x);
+					// @ts-ignore
 					return i !== -1 ? this.list[i].cookieStoreId : false;
 				})
 				.filter(Boolean);
 		},
 
-		/**
-		 * @param {string[]} cookieStoreIDs 
-		 * @returns {string}
-		 */
-		getContainerNames(cookieStoreIDs) {
+		getContainerNames(cookieStoreIDs: string[]): string {
 			return cookieStoreIDs
 				.map((x) => {
+					// @ts-ignore
 					const i = this.cookieStoreIDs.indexOf(x);
+					// @ts-ignore
 					return i !== -1 ? this.list[i].name : false;
 				})
 				.filter(Boolean)
 				.join("; ");
-		}
+		},
 	};
 }
 
-
-
-/**
- * 
- * @param {browser.contextualIdentities.ContextualIdentity[]} identities 
- * @param {HTMLInputElement} el 
- */
-function createContainerList(identities, el) {
+function createContainerList(
+	identities: browser.contextualIdentities.ContextualIdentity[],
+	el: HTMLInputElement
+) {
 	if (identities.length > 0) {
-		const availableContainers = document.querySelector("#availableContainers");
+		const availableContainers = document.querySelector(
+			"#availableContainers"
+		);
 		const setContainers = document.querySelector("#setContainers");
+
+		if (!availableContainers || !setContainers) {
+			return;
+		}
 
 		for (let idx = 0; idx < identities.length; idx++) {
 			const { name, colorCode, iconUrl } = identities[idx];
 
 			const icon = document.createElement("img");
 			icon.src = iconUrl;
-			icon.classList = "container-icon";
+			icon.className = "container-icon";
 
 			const span = document.createElement("span");
 			span.className = "available-container";
 			span.style.cssText = `--identity-border-color-hover: ${ colorCode }; --identity-border-color: ${ colorCode }55; --identity-icon: ${ iconUrl };`;
-			span.href = "#";
 
 			span.appendChild(icon);
 			span.appendChild(document.createTextNode(name));
 
 			span.addEventListener("click", (e) => {
 				e.preventDefault();
+
 				if (!el.value.includes(name)) {
 					setContainers.appendChild(span);
 					el.value += (el.value.length > 0 ? "; " : "") + name;
@@ -168,22 +165,19 @@ function createContainerList(identities, el) {
 	}
 }
 
-async function setCurrentChoice(result) {
-
+async function setCurrentChoice(result: { [key: string]: any }) {
 	opts = result;
 
 	for (let [key, val] of Object.entries(result)) {
 		if (key in opts) {
-			const el = document.querySelector("#" + key);
+			const el = document.querySelector<HTMLInputElement>("#" + key);
 
 			if (!el) continue;
 
 			val = val || opts[key];
 
 			switch (el.type) {
-
 				case "text": {
-
 					const separator = el.getAttribute("data-separator");
 
 					if (Array.isArray(val) && separator) {
@@ -220,18 +214,17 @@ async function setCurrentChoice(result) {
 	browser.storage.local.set(result);
 }
 
-async function restoreOptions() {
-	await browser.storage.local.get()
-		.then(setCurrentChoice, onError);
-}
+export default async function main() {
+	async function restoreOptions() {
+		await browser.storage.local.get().then(setCurrentChoice, onError);
+	}
 
-(async () => {
 	await restoreOptions();
 
 	document.addEventListener("DOMContentLoaded", restoreOptions);
-	document.querySelector("form").addEventListener("submit", saveOptions);
-	document.querySelector("#reset").addEventListener("click", () => {
+	document.querySelector("form")?.addEventListener("submit", saveOptions);
+	document.querySelector("#reset")?.addEventListener("click", () => {
 		browser.storage.local.clear();
 		browser.runtime.reload();
 	});
-})();
+}

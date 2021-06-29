@@ -1,20 +1,51 @@
 {
 	"name": "tab-mover-alternative",
-	"description": "tab mover addon modificaiton for personal use only",
-	"version": "0.8.11",
+	"description": "Tab mover addon 'fork' for personal use only.",
+	"version": "0.8.13",
 	"license": "MPL-2.0",
 	"scripts": {
 		"debug": "web-ext run",
-		"build": "web-ext build"
+		"build": "web-ext build",
+		"watch": "npm-run-all --parallel watch:*",
+		"copy": "npm-run-all --parallel --print-label copy:*",
+		"copy:manifest": "shx cp src/manifest.json dist/",
+		"copy:locales": "shx cp -r locales/ dist/_locales",
+		"copy:files": "shx cp -r src/icons dist/ && shx cp -r src/popup dist/ && shx cp src/options/index.html dist/options/index.html && shx cp -r src/content dist/",
+		"watch:js": "webpack --watch --progress",
+		"watch:manifest": "onchange -p 500 -v \"src/manifest.json\" -- yarn run copy:manifest",
+		"_watch:locales": "onchange -p 500 -v \"locales/\" -- yarn run copy:locales",
+		"watch:files": "onchange -p 500 -v \"src/content/*\" \"src/icons/*\" \"src/options/*\" \"src/popup/*\" -- yarn run copy:files"
+	},
+	"dependencies": {
+		"svelte": "^3.38.3",
+		"svelte-loader": "^3.1.2"
 	},
 	"devDependencies": {
-		"@types/firefox-webext-browser": "^82.0.0"
+		"@types/firefox-webext-browser": "^82.0.0",
+		"@types/node": "^15.12.4",
+		"@typescript-eslint/eslint-plugin": "^4.28.0",
+		"@typescript-eslint/parser": "^4.28.0",
+		"cross-env": "^7.0.3",
+		"eslint": "^7.29.0",
+		"fork-ts-checker-webpack-plugin": "^6.2.12",
+		"npm-run-all": "^4.1.5",
+		"onchange": "^7.1.0",
+		"shx": "^0.3.3",
+		"svelte-check": "^2.2.0",
+		"svelte-preprocess": "^4.7.3",
+		"terser-webpack-plugin": "^5.1.4",
+		"ts-loader": "^9.2.3",
+		"tslib": "^2.3.0",
+		"typescript": "^4.3.4",
+		"webpack": "^5.40.0",
+		"webpack-cli": "^4.7.2",
+		"webpack-hook-plugin": "^1.0.7"
 	},
 	"webExt": {
 		"verbose": true,
 		"build": {
 			"overwriteDest": true
 		},
-		"sourceDir": "package/"
+		"sourceDir": "dist/"
 	}
 }

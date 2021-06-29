@@ -1,21 +1,7 @@
-// TODO: 
-// make a "matching test" for regex on settings page
+import { Downloads } from "../browser/Download";
+import { formatDateToReadableFormat } from "../utils/normalizeString";
 
-import { Downloads } from "../utils/Download";
-
-const config = {
-	closeOnComplete: true,
-	formatDateMonth: true, // 2021-jan-2 => 2021-01-02
-};
-
-const RELATIVE_PARENT_FOLDER = "baazacuda";
-
-const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-
-
-/**
- * Get all opened tabs prioritizing highlighted ones. 
- */
+/** Get all opened tabs prioritizing highlighted ones. */
 async function getActiveTabsInWin(): Promise<browser.tabs.Tab[]> {
 	const tabs = await browser.tabs.query({
 		discarded: false,
@@ -28,39 +14,6 @@ async function getActiveTabsInWin(): Promise<browser.tabs.Tab[]> {
 	return filterNotHighlighted.length > 1
 		? filterNotHighlighted
 		: tabs;
-}
-
-function normalizePath(str: string) {
-	str = decodeURIComponent(str);
-
-	// format date to a "readable" format
-	if (config.formatDateMonth) {
-		str = str.replace(
-			/([0-9]{4})-([\w]+)-([0-9]+)/,
-			function (_: string, year: string, month: string, day: string) {
-				const index = months.indexOf(month);
-				if (index !== -1) {
-					return [
-						year,
-						String(index + 1).padStart(2, "0"),
-						day.padStart(2, "0")
-					].join("-");
-				}
-				return _;
-			}
-		);
-	}
-
-	return str;
-}
-
-function createNotice(msg: string) {
-	browser.notifications.create({
-		title: "Tab image saver",
-		message: msg,
-		type: "basic",
-		iconUrl: "icons/web-browser-active.svg",
-	});
 }
 
 function correctFolderPath(folder: string, matched: RegExpMatchArray): string {
@@ -79,78 +32,100 @@ function correctFolderPath(folder: string, matched: RegExpMatchArray): string {
 	return aFolderPath;
 }
 
-const downloads = new Downloads();
-
-async function saveTabs(tabs: (browser.tabs.Tab & RuleType)[]) {
-	/** @type {number[]} */
-	const completed: number[] = [];
-	const parsedURLs: string[] = [];
-
-	for (const tab of tabs) {
-		const {
-			url, target, folder
-		} = tab;
-
-		if (!url) continue;
-
-		if (parsedURLs.includes(url))
-			continue;
-
-		parsedURLs.push(url);
-
-		const matched = url.match(new RegExp(target));
-
-		if (matched === null)
-			break;
-
-		const filename = new URL(url).pathname.split("/").pop() ?? "";
-
-		const relativeFilePath = [
-			RELATIVE_PARENT_FOLDER,
-			...normalizePath(correctFolderPath(folder, matched)).split("\\"),
-			filename
-		]
-			.map(function (x) {
-				x = x
-					.replace(/[.]{2,}/g, "_")
-					.replace(/:[a-z]+/, ""); // twitter image size indicators, :orig :large ...
-
-				return downloads._normalizeFilename(x);
-
-			})
-			.join("/");
-
-		try {
-			await downloads.start({
-				url,
-				filename: relativeFilePath,
-				conflictAction: "overwrite"
-			}, tab.erase ?? true)
-				.catch(function (err) {
-					throw new Error(err.message + ": " + relativeFilePath);
-				});
-
-			if (tab.id) {
-				completed.push(tab.id);
-			}
-		}
-		catch (err) {
-			console.error(err);
-		}
-
-		console.log("saved image:", tab.url);
-	}
-
-	// close tabs
-	browser.tabs.remove(config.closeOnComplete ? completed : [])
-		.then(function () {
-			createNotice(`Saved images from ${ completed.length } tab(s)`);
-		});
-}
-
-export default function main(settings: Settings): void {
+export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): void {
 
 	const { imageSaverRules } = settings;
+	const downloads = new Downloads();
+	const PARSED_IN_CURRENT_SESSION: string[] = [];
+
+	function normalizePath(str: string) {
+		str = decodeURIComponent(str);
+
+		if (opts.formatDateMonth) {
+			str = formatDateToReadableFormat(str);
+		}
+
+		return str;
+	}
+
+	function createNotice(msg: string) {
+		if (opts.notifications) {
+			browser.notifications.create({
+				...opts.notifications,
+				message: msg,
+			});
+		}
+		else {
+			throw new Error("opts.notifications are required");
+		}
+	}
+
+	async function saveTabs(tabs: (browser.tabs.Tab & RuleType)[]) {
+
+		let completed = 0;
+
+		for (const tab of tabs) {
+			const { url, target, folder } = tab;
+
+			if (!url) {
+				continue;
+			}
+
+			if (PARSED_IN_CURRENT_SESSION.includes(url)) {
+				continue;
+			}
+
+			PARSED_IN_CURRENT_SESSION.push(url);
+
+			const matched = url.match(new RegExp(target));
+
+			if (matched === null) {
+				break;
+			}
+
+			const filename = new URL(url).pathname.split("/").pop() ?? "";
+
+			const relativeFilepath = [
+				opts.folder,
+				...normalizePath(correctFolderPath(folder, matched)).split("\\"),
+				filename
+			]
+				.map(function (x) {
+					return downloads.normalizeFilename(
+						x
+							.replace(/[.]{2,}/g, "_")
+							.replace(/:[a-z]+/, "") // twitter image size indicators, :orig :large ...
+					);
+				})
+				.join("/");
+
+			try {
+				const err = await downloads.start({
+					url,
+					filename: relativeFilepath,
+					conflictAction: "overwrite"
+				}, tab.erase ?? true)
+					.catch((err: Error) => err);
+
+				if (err instanceof Error) {
+					throw new Error(err.message + ": " + relativeFilepath);
+				}
+
+				if (opts.closeTabsOnComplete && tab.id) {
+					browser.tabs.remove(tab.id);
+				}
+
+				completed++;
+
+				console.log("saved image:", tab.url);
+			}
+			catch (err) {
+				console.error(err);
+			}
+		}
+
+		createNotice(`Saved images from ${ completed } tab(s)`);
+	}
 
 	/**
 	 * Filter tabs in the current window that match the regex.
@@ -209,6 +184,6 @@ export default function main(settings: Settings): void {
 		enabled: true,
 		contexts: ["browser_action"],
 		onclick: saveImages,
-		icons: { 32: "icons/fi-br-picture.svg" }
+		icons: { 32: "icons/image.svg" }
 	});
 }

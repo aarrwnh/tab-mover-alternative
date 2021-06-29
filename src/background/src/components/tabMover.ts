@@ -7,7 +7,7 @@ let windowMenuIds: (string | number)[] = [];
 let lastMenuInstanceId = 0;
 let nextMenuInstanceId = 1;
 
-export default function main(settings: Settings) {
+export default function main(settings: Addon.Settings) {
 	/*
 	* Copyright (C) 2018 Guido Berhoerster <guido+tab-mover@berhoerster.name>
 	*
@@ -40,6 +40,8 @@ export default function main(settings: Settings) {
 	/** Move left/right over more tabs than ctrl+tab. */
 	function navigateToTab(direction: 1 | -1) {
 		const { tabTravelDistance } = settings;
+
+		console.log("tabTravelDistance", tabTravelDistance);
 
 		if (tabTravelDistance < 2) return;
 
@@ -203,7 +205,7 @@ export default function main(settings: Settings) {
 		browser.tabs.remove(selectedTabs.map((selectedTab) => selectedTab.id ?? -1));
 	}
 
-	async function onMenuShown(info: browser.menus._OnShownInfo, tab: browser.tabs.Tab) {
+	async function onMenuShown(_info: browser.menus._OnShownInfo, tab: browser.tabs.Tab) {
 		const menuInstanceId = nextMenuInstanceId++;
 		lastMenuInstanceId = menuInstanceId;
 		const targetWindows = await browser.windows.getAll({
@@ -221,7 +223,7 @@ export default function main(settings: Settings) {
 			}
 			if (tab.incognito === targetWindow.incognito) {
 				creatingMenus.push(createMenuItem({
-					onclick: (info, tab) => moveTabs(tab, targetWindowId),
+					onclick: (_info, tab) => moveTabs(tab, targetWindowId),
 					parentId: "move-menu",
 					title: targetWindow.title
 				}));
@@ -229,7 +231,7 @@ export default function main(settings: Settings) {
 			}
 			else {
 				creatingMenus.push(createMenuItem({
-					onclick: (info, tab) => reopenTabs(tab, targetWindowId),
+					onclick: (_info, tab) => reopenTabs(tab, targetWindowId),
 					parentId: "reopen-menu",
 					title: targetWindow.title
 				}));
