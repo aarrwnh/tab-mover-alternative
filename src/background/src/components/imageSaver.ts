@@ -1,5 +1,7 @@
 import { Downloads } from "../browser/Download";
+import { TabConnection } from "../browser/TabConnection";
 import { formatDateToReadableFormat } from "../utils/normalizeString";
+import { pluralize } from "../utils/pluralize";
 
 /** Get all opened tabs prioritizing highlighted ones. */
 async function getActiveTabsInWin(): Promise<browser.tabs.Tab[]> {
@@ -16,25 +18,95 @@ async function getActiveTabsInWin(): Promise<browser.tabs.Tab[]> {
 		: tabs;
 }
 
-function correctFolderPath(folder: string, matched: RegExpMatchArray): string {
-	const aFolderPath = folder.replace(/\$([0-9]+);/g, function (_, m) {
-		// $1;, $2;, ... $n; in the folder path will be replaced
-		// by corresponding match count in the `target` regex
-		const index = Number(m);
+function replaceSavePathPlaceholders(
+	folder: string,
+	foundPlaceholders: RegExpMatchArray,
+	foundLargestPlaceholders: string[]
+): string {
+	function a(placeholders: string[]) {
+		return function (_: string, m: any) {
+			// $1;, $2;, ... $n; in the folder path will be replaced
+			// by corresponding match count in the `target` regex
+			const index = Number(m);
 
-		if (typeof index === "number" && matched[index]) {
-			return matched[index];
+			if (
+				typeof index === "number"
+				&& placeholders
+				&& placeholders.length > 1
+				&& placeholders[index]
+			) {
+				return placeholders[index];
+			}
+			else {
+				throw new Error("something went wrong");
+			}
+		};
+	}
+
+	return folder
+		.replace(/\$([0-9]+);/g, a(foundPlaceholders))
+		.replace(/\$1_([0-9]+);/g, a(foundLargestPlaceholders));
+}
+
+// ns.xpathRegExp = /^<XPath\s*attribute=(?:"|'|)([^"'\s]+)(?:"|'| )\s*>(.+)<\/XPath>\s*(?:<RegExp>(.+)<\/RegExp>)?/i;
+const RE_XPATH = /<XPath(?: attribute=([\w'"]+))?>(.+)<\/XPath>/;
+const RE_REGEXP = /<RegExp>(.+)<\/RegExp>/;
+
+function validateXPathTag(target: string): { attr: "src" | "href"; path: string } | void {
+	const matchXPath = target.match(RE_XPATH);
+	if (matchXPath !== null) {
+		const [, attr, path] = matchXPath;
+		if (!attr) {
+			console.error("XPath attribute value should be either 'src' or 'href'");
 		}
-		else {
-			throw new Error("something went wrong");
+
+		return {
+			attr: (attr.slice(1, -1) as any) ?? "src",
+			path // TODO: validate/sanitize/escape
+		};
+	}
+}
+
+function validateRegExpTag(target: string): RegExp | void {
+	const match = target.match(RE_REGEXP);
+	if (match !== null) {
+		return new RegExp(match[1]);
+	}
+}
+
+async function evaluateLargeTarget(target: string, tabId?: number): Promise<string[][]> {
+	let matchAll: string[][] = [];
+
+	const tabConnection = new TabConnection(tabId);
+
+	if (target.includes("</XPath>")) {
+		const regExpFromTag = target.includes("</RegExp>") ? validateRegExpTag(target) : void 0;
+
+		const XPathFromTag = validateXPathTag(target);
+
+		if (XPathFromTag) {
+			matchAll = (await tabConnection.queryXPath(XPathFromTag.path, XPathFromTag.attr))
+				.map((x) => {
+					if (regExpFromTag) {
+						const match = x.match(regExpFromTag);
+						return match === null ? [] : [x, ...match.slice(1)];
+					}
+					return [x];
+				});
 		}
-	});
-	return aFolderPath;
+	}
+	// treat `target` as RexExp and 
+	else {
+		matchAll = await tabConnection.matchAllText(target);
+	}
+
+	return matchAll
+		? matchAll.filter((x) => x.length > 0)
+		: [];
 }
 
 export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): void {
 
-	const { imageSaverRules } = settings;
 	const downloads = new Downloads();
 	const PARSED_IN_CURRENT_SESSION: string[] = [];
 
@@ -60,14 +132,14 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		}
 	}
 
-	async function saveTabs(tabs: (browser.tabs.Tab & RuleType)[]) {
+	async function saveTabs(tabs: (browser.tabs.Tab & Addon.ImageSaverRule)[]) {
 
 		let completed = 0;
 
 		for (const tab of tabs) {
-			const { url, target, folder } = tab;
+			const { disabled, url, target, folder, findLargest, findLargestTarget } = tab;
 
-			if (!url) {
+			if (!url || disabled) {
 				continue;
 			}
 
@@ -75,73 +147,102 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 				continue;
 			}
 
-			PARSED_IN_CURRENT_SESSION.push(url);
-
-			const matched = url.match(new RegExp(target));
-
-			if (matched === null) {
+			const matchedTabURL = url.match(new RegExp(target));
+			if (matchedTabURL === null) {
 				break;
 			}
 
-			const filename = new URL(url).pathname.split("/").pop() ?? "";
+			const currentTabDownloadURLs: string[][] = [];
 
-			const relativeFilepath = [
-				opts.folder,
-				...normalizePath(correctFolderPath(folder, matched)).split("\\"),
-				filename
-			]
-				.map(function (x) {
-					return downloads.normalizeFilename(
-						x
-							.replace(/[.]{2,}/g, "_")
-							.replace(/:[a-z]+/, "") // twitter image size indicators, :orig :large ...
-					);
-				})
-				.join("/");
-
-			try {
-				const err = await downloads.start({
-					url,
-					filename: relativeFilepath,
-					conflictAction: "overwrite"
-				}, tab.erase ?? true)
-					.catch((err: Error) => err);
-
-				if (err instanceof Error) {
-					throw new Error(err.message + ": " + relativeFilepath);
+			if (findLargest && findLargestTarget) {
+				const matchAll = await evaluateLargeTarget(findLargestTarget, tab.id); // => RegExpMatchArray[]
+				if (matchAll.length > 0) {
+					currentTabDownloadURLs.push(...matchAll);
 				}
-
-				if (opts.closeTabsOnComplete && tab.id) {
-					browser.tabs.remove(tab.id);
-				}
-
-				completed++;
-
-				console.log("saved image:", tab.url);
 			}
-			catch (err) {
-				console.error(err);
+			else {
+				currentTabDownloadURLs.push([url]);
+			}
+
+			for (const downloadURLMatch of currentTabDownloadURLs) {
+
+				const downloadURL = downloadURLMatch[0];
+				if (PARSED_IN_CURRENT_SESSION.includes(downloadURL)) {
+					continue;
+				}
+
+				const filename = new URL(downloadURL).pathname.split("/").pop() ?? "";
+
+				const correctedPath = replaceSavePathPlaceholders(
+					folder,
+					matchedTabURL,
+					downloadURLMatch.length > 1 ? downloadURLMatch : []
+				);
+
+				const relativeFilepath = [
+					...normalizePath(correctedPath).split("/"),
+					filename
+				]
+					.map(function (x) {
+						return downloads.normalizeFilename(
+							x
+								.replace(/[.]{2,}/g, "_")
+								// put twitter image size indicators, :orig :large, before extension
+								.replace(/(\.\w+):(\w+)/, "\x20$2$1")
+						);
+					})
+					.join("/")
+					.replace(/\/{2,}/g, "/");
+
+				try {
+					console.debug(downloadURL, relativeFilepath);
+
+					const err = await downloads.start({
+						url: downloadURL,
+						filename: relativeFilepath,
+						// TODO: change to "prompt" when implemented in FF?
+						conflictAction: "overwrite",
+						headers: [{
+							name: "Referer",
+							value: url
+						}]
+					}, true)
+						.catch((err: Error) => err);
+
+					if (err instanceof Error) {
+						throw new Error(err.message + ": " + url);
+					}
+
+					if (settings.imageSaverCloseOnComplete && tab.id) {
+						browser.tabs.remove(tab.id);
+					}
+
+					completed++;
+
+					PARSED_IN_CURRENT_SESSION.push(downloadURL);
+
+					console.log("saved image:", tab.url, tab.url === downloadURL ? void 0 : downloadURL);
+				}
+				catch (err) {
+					console.error(err);
+				}
 			}
 		}
 
-		createNotice(`Saved images from ${ completed } tab(s)`);
+		createNotice(`Saved ${ completed } image${ pluralize(completed) } from ${ tabs.length } tab${ pluralize(tabs.length) }`);
 	}
 
 	/**
 	 * Filter tabs in the current window that match the regex.
 	 */
-	function filterTabs(tabs: browser.tabs.Tab[]): (browser.tabs.Tab & RuleType)[] {
+	function filterTabs(tabs: browser.tabs.Tab[]): (browser.tabs.Tab & Addon.ImageSaverRule)[] {
 		const filtered = [];
 
 		for (const tab of tabs) {
 			if (!tab.url) continue;
 
-			for (const rule of imageSaverRules) {
+			for (const rule of settings.imageSaverRules) {
 				if (!rule.target || !rule.folder) break;
-
-				if (!rule.erase) {
-					rule.erase = true;
-				}
 
 				const regex = new RegExp(rule.target);
 

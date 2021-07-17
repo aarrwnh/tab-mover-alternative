@@ -1,3 +1,5 @@
+import type { MessageQuery } from "../../types";
+
 enum TabConnectionError {
 	BadQuery = "could not get response for the send query",
 	NoTab = "no tabId specified",
@@ -11,11 +13,7 @@ export class TabConnection {
 		}
 	}
 
-	private async _queryTabContentScript(msgQuery: {
-		context: {
-			querySelector: string;
-		};
-	}): Promise<string | undefined> {
+	private async _queryTabContentScript(msgQuery: MessageQuery): Promise<any | undefined> {
 		const { tabId } = this;
 
 		return new Promise(function (resolve, reject) {
@@ -23,11 +21,11 @@ export class TabConnection {
 				const port = browser.tabs.connect(tabId);
 				port.postMessage(msgQuery);
 				const listener = function (response: any) {
-					if (response.text) {
-						resolve(response.text);
+					if (response.result) {
+						resolve(response.result);
 					}
 					else {
-						console.log(TabConnectionError.BadQuery);
+						console.error(TabConnectionError.BadQuery);
 						resolve(undefined);
 					}
 					port.disconnect();
@@ -41,9 +39,21 @@ export class TabConnection {
 		});
 	}
 
-	public async querySelector(selector: string): Promise<string | undefined> {
+	public async querySelectorText(selector: string): Promise<string | undefined> {
 		return await this._queryTabContentScript({
-			context: { querySelector: selector }
+			context: { type: "selector", target: selector }
+		});
+	}
+
+	public async matchAllText(regex: string): Promise<string[][]> {
+		return await this._queryTabContentScript({
+			context: { type: "RegExp", target: regex }
+		});
+	}
+
+	public async queryXPath(XPath: string, attribute: "href" | "src"): Promise<string[]> {
+		return await this._queryTabContentScript({
+			context: { type: "XPath", target: XPath, attribute }
 		});
 	}
 }

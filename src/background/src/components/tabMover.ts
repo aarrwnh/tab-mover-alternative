@@ -75,7 +75,7 @@ export default function main(settings: Addon.Settings) {
 
 	async function moveToWindow(targetWindowId: number, tabs: number[]) {
 		if (targetWindowId < 1) {
-			const newWindow = await browser.windows.create({ tabId: tabs.pop() });
+			const newWindow = await browser.windows.create({ tabId: tabs.shift() });
 			targetWindowId = newWindow.id || browser.windows.WINDOW_ID_NONE;
 		}
 
@@ -131,7 +131,6 @@ export default function main(settings: Addon.Settings) {
 		if (cookieIDs.length > 1 && defaultTabIdx !== -1) {
 			// when selected tabs are mixed,
 			// handle just containered tabs first on first click
-			// @ts-ignore
 			delete filteredTabs["firefox-default"];
 			cookieIDs.splice(defaultTabIdx, 1);
 		}

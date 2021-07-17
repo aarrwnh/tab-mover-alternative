@@ -1,114 +1,47 @@
 <script lang="ts">
-	import Checkbox from "./components/InputCheckbox.svelte";
-	import InputNumber from "./components/InputNumber.svelte";
-	import initialize from "./handler/index";
+	import Form from "./components/Form.svelte";
+	import { defaultFormFieldValues } from "./handler/defaultFieldValues";
+	import { debounce } from "./helpers/debounce";
 
-	initialize();
+	let idx = 0;
+	let result: Addon.Settings = Object.create(null);
+
+	const onChange: FormChangeCallback = function (body) {
+		const settings = body();
+		if (settings) {
+			result = settings;
+			console.log("changed:", idx++);
+		}
+	};
 </script>
 
 <div id="main">
-	<form>
-		<Checkbox
-			id={"switchToTabAfterMoving"}
-			description={"Switch to active tab after move to another window"}
-			extra={"middle clicking on the toolbar icon ignores this options"}
-		/>
+	<Form
+		onSubmit={onChange}
+		onChange={debounce(1000, onChange)}
+		formFieldValues={defaultFormFieldValues}
+	/>
 
-		<Checkbox
-			id={"showLastWindowIDBadge"}
-			description={"Show previously active window ID in the badge"}
-		/>
-
-		<InputNumber
-			id={"tabTravelDistance"}
-			description={"Tab travel distance"}
-			extra={"set to more than 1 to work"}
-			min="0"
-			max="10"
-		/>
-
-		<InputNumber
-			id={"recentTabTimeout"}
-			description={"Recent tab timeout (seconds)"}
-			extra={"set to more than 1 to work"}
-			min="0"
-			max="3600"
-			step="100"
-		/>
-
-		<div class="text-input">
-			Always move below containers to a new window:
-			<br />
-
-			<table id="identityTable">
-				<tr>
-					<td>Set:</td>
-					<td id="setContainers">
-						<input
-							type="hidden"
-							id="moveableContainers"
-							data-option="true"
-						/>
-					</td>
-				</tr>
-
-				<tr>
-					<td>Available:</td>
-					<td id="availableContainers" />
-				</tr>
-			</table>
-		</div>
-
-		<hr />
-		<h2>Bookmarks</h2>
-
-		<div class="text-input">
-			Always create subfolder and put bookmarks for the listed
-			hostnames/domains:
-			<br />
-			<input
-				id="bookmarkAlwaysToChildFolder"
-				type="text"
-				data-option="true"
-				data-separator=","
-			/>
-		</div>
-
-		<hr />
-		<h2>Image saver</h2>
-
-		<div>**WIP**</div>
-
-		<hr />
-		<div>
-			<label>
-				<input type="checkbox" id="debugMode" data-option="true" />
-				debug
-			</label>
-		</div>
-
-		<div class="form-buttons">
-			<button id="submit" type="submit">Save</button>
-			<button id="reset" type="button">Reset</button>
-		</div>
-	</form>
+	{#if result.debugMode}
+		<pre>
+			<code>{JSON.stringify(result, null, 2)}</code>
+		</pre>
+	{/if}
 </div>
 
 <style>
+	:global(body) {
+		display: flex;
+		flex-direction: column;
+	}
+
 	div {
 		padding: 1em;
-		max-width: 240px;
+		max-width: 580px;
 		margin: 0 auto;
 	}
 
-	/* h1 {
-		color: #ff3e00;
-		text-transform: uppercase;
-		font-size: 4em;
-		font-weight: 100;
-	} */
-
-	@media (min-width: 640px) {
+	@media (min-width: 680px) {
 		div {
 			max-width: none;
 		}

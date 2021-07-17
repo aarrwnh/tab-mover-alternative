@@ -5,6 +5,8 @@ const WebpackHookPlugin = require("webpack-hook-plugin");
 const sveltePreprocess = require("svelte-preprocess");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 
+const ASSET_SIZE_LIMIT = 15000;
+
 /**
  * @param {import("process")["env"]} _env 
  * @param {import("webpack").Configuration} argv 
@@ -39,7 +41,8 @@ module.exports = (_env, argv) => {
 
 		entry: {
 			background: "/src/background/index.ts",
-			options: "/src/options/main.js"
+			options: "/src/options/main.js",
+			content: "/src/content/content.ts"
 		},
 
 		stats: {
@@ -53,6 +56,12 @@ module.exports = (_env, argv) => {
 					: "[name]/index.js";
 			},
 			path: path.resolve(__dirname, "dist")
+		},
+
+		performance: {
+			hints: "error",
+			maxEntrypointSize: ASSET_SIZE_LIMIT * 1024,
+			maxAssetSize: ASSET_SIZE_LIMIT * 1024
 		},
 
 		optimization: {

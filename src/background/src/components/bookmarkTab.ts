@@ -3,6 +3,12 @@ import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
 import { TabUtils } from "../browser/Tab";
 import { TabConnection } from "../browser/TabConnection";
 
+type InternetShortcutFields = {
+	url: string;
+	origin: string;
+	description?: string;
+}
+
 export default function main(
 	settings: Addon.Settings,
 	opts: Addon.ModuleOpts
@@ -17,15 +23,9 @@ export default function main(
 
 	const downloads = new Downloads();
 
-	type InternetShortcutFields = {
-		url: string;
-		origin: string;
-		description?: string;
-	}
-
 	class Bookmarks extends TabUtils {
 
-		constructor(private subdirList: string[]) {
+		constructor() {
 			super();
 		}
 
@@ -53,12 +53,13 @@ export default function main(
 			hostname: string,
 			date?: string
 		): Promise<string> {
-			const subdirOrPrefix = this.subdirList.includes(hostname)
+			const subdirOrPrefix = settings.bookmarksAlwaysToChildFolder.includes(hostname)
 				? `${ hostname }/`
 				: `[${ hostname }] `;
 
-			const filename = opts.folder
-				+ "/"
+			const filename = (settings.bookmarksSaveLocation !== ""
+				? settings.bookmarksSaveLocation + "/"
+				: "")
 				+ subdirOrPrefix
 				+ replaceIllegalCharacters(title).slice(0, 150)
 				+ (date ? ` (${ date })` : "")
@@ -88,14 +89,14 @@ export default function main(
 				const urlFileBodyObjectURL = this._createObjectURL({
 					url,
 					origin,
-					description: await tabConnection.querySelector([
+					description: await tabConnection.querySelectorText([
 						'meta[itemprop="description"]',
 						'meta[name="twitter:description"]',
 						'meta[property="twitter:description"]',
 					].join(","))
 				});
 
-				const date = await tabConnection.querySelector('meta[itemprop="datePublished"]');  // yt: content="2020-04-01"
+				const date = await tabConnection.querySelectorText('meta[itemprop="datePublished"]');  // yt: content="2020-04-01"
 
 				if (!title) {
 					throw new Error("no title");
@@ -104,7 +105,7 @@ export default function main(
 				const filename = await this._composeFilename(title, hostname, date);
 
 				if ((41 + filename.length) > 260) {
-					console.log("filename.length", 41 + filename.length);
+					console.error("filename.length", 41 + filename.length);
 				}
 
 				await downloads.start({
@@ -136,13 +137,11 @@ export default function main(
 		}
 	}
 
-	const bookmarks = new Bookmarks(
-		settings.bookmarkAlwaysToChildFolder
-	);
+	const bookmarks = new Bookmarks();
 
 	async function saveBookmark(): Promise<void> {
 		const tabIDs = await bookmarks.saveSelectedTabs();
-		if (opts.closeTabsOnComplete && tabIDs && tabIDs.length > 0) {
+		if (settings.bookmarksCloseOnComplete && tabIDs && tabIDs.length > 0) {
 			bookmarks.closeTabs(tabIDs);
 		}
 	}

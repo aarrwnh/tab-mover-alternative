@@ -1,6 +1,6 @@
 export async function setup() {
 
-	const DEFAULT = { // keys are used as id selectors
+	const DEFAULT: Addon.DefaultSettings = {
 		switchToTabAfterMoving: false,
 		showLastWindowIDBadge: false,
 		moveableContainers: [],
@@ -8,8 +8,11 @@ export async function setup() {
 		debugMode: false,
 		recentTabTimeout: 3600,
 		movePinnedTabs: false,
-		bookmarkAlwaysToChildFolder: [],
-		imageSaverRules: []
+		bookmarksAlwaysToChildFolder: [],
+		bookmarksSaveLocation: "",
+		imageSaverRules: [],
+		bookmarksCloseOnComplete: true,
+		imageSaverCloseOnComplete: true,
 	};
 
 	const _settings: Addon.Settings = Object.assign({});
@@ -32,7 +35,6 @@ export async function setup() {
 		});
 
 
-	// TODO: temp fix for when ?
 	await browser.storage.local.get()
 		.then((result) => {
 			const currentSettings = Object.keys(result);

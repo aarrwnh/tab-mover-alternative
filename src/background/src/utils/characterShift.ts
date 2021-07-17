@@ -15,7 +15,7 @@ export default function characterShift(
 	shiftBy = 0x20
 ): string {
 	if (!str) {
-		throw new SyntaxError("function requires two arguments");
+		throw new SyntaxError("no string to parse");
 	}
 
 	let matched;
