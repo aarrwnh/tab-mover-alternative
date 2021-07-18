@@ -18,14 +18,23 @@ async function getActiveTabsInWin(): Promise<browser.tabs.Tab[]> {
 		: tabs;
 }
 
-function replaceSavePathPlaceholders(
-	folder: string,
-	foundPlaceholders: RegExpMatchArray,
-	foundLargestPlaceholders: string[]
-): string {
-	function a(placeholders: string[]) {
-		return function (_: string, m: any) {
-			// $1;, $2;, ... $n; in the folder path will be replaced
+function closeWindowIfEmpty(tabs: browser.tabs.Tab[]): void {
+	browser.windows.getAll().then(function (windows) {
+		if (windows.length > 1
+			&& tabs.length === 1
+			&& tabs[0].index === 0
+			&& tabs[0].url?.startsWith("about:")
+			&& tabs[0].windowId
+		) {
+			browser.windows.remove(tabs[0].windowId);
+		}
+	});
+}
+
+function replaceSavePathPlaceholders(regex: RegExp, placeholders: string[]) {
+	return function (folder: string) {
+		return folder.replace(regex, function (_: string, m: any) {
+			// $1; $2; ... $n; in the folder path will be replaced
 			// by corresponding match count in the `target` regex
 			const index = Number(m);
 
@@ -40,12 +49,8 @@ function replaceSavePathPlaceholders(
 			else {
 				throw new Error("something went wrong");
 			}
-		};
-	}
-
-	return folder
-		.replace(/\$([0-9]+);/g, a(foundPlaceholders))
-		.replace(/\$1_([0-9]+);/g, a(foundLargestPlaceholders));
+		});
+	};
 }
 
 // ns.xpathRegExp = /^<XPath\s*attribute=(?:"|'|)([^"'\s]+)(?:"|'| )\s*>(.+)<\/XPath>\s*(?:<RegExp>(.+)<\/RegExp>)?/i;
@@ -137,7 +142,14 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		let completed = 0;
 
 		for (const tab of tabs) {
-			const { disabled, url, target, folder, findLargest, findLargestTarget } = tab;
+			const {
+				disabled,
+				url,
+				target,
+				folder: folderLocation,
+				findLargest,
+				findLargestTarget
+			} = tab;
 
 			if (!url || disabled) {
 				continue;
@@ -147,8 +159,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 				continue;
 			}
 
-			const matchedTabURL = url.match(new RegExp(target));
-			if (matchedTabURL === null) {
+			const matchedTargetUrl = url.match(new RegExp(target));
+			if (matchedTargetUrl === null) {
 				break;
 			}
 
@@ -164,23 +176,23 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 				currentTabDownloadURLs.push([url]);
 			}
 
-			for (const downloadURLMatch of currentTabDownloadURLs) {
+			for (const downloadUrlMatch of currentTabDownloadURLs) {
 
-				const downloadURL = downloadURLMatch[0];
+				const downloadURL = downloadUrlMatch[0];
 				if (PARSED_IN_CURRENT_SESSION.includes(downloadURL)) {
 					continue;
 				}
 
 				const filename = new URL(downloadURL).pathname.split("/").pop() ?? "";
 
-				const correctedPath = replaceSavePathPlaceholders(
-					folder,
-					matchedTabURL,
-					downloadURLMatch.length > 1 ? downloadURLMatch : []
-				);
+				const correctedPath = [
+					replaceSavePathPlaceholders(/\$([0-9]+);/g, matchedTargetUrl),
+					replaceSavePathPlaceholders(/\$1_([0-9]+);/g, downloadUrlMatch.length > 1 ? downloadUrlMatch : []),
+					normalizePath
+				].reduce((a, curr) => curr(a), folderLocation);
 
 				const relativeFilepath = [
-					...normalizePath(correctedPath).split("/"),
+					...correctedPath.split("/"),
 					filename
 				]
 					.map(function (x) {
@@ -217,11 +229,11 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 						browser.tabs.remove(tab.id);
 					}
 
-					completed++;
+					console.log("saved image:", tab.url, tab.url === downloadURL ? null : downloadURL);
 
 					PARSED_IN_CURRENT_SESSION.push(downloadURL);
 
-					console.log("saved image:", tab.url, tab.url === downloadURL ? void 0 : downloadURL);
+					completed++;
 				}
 				catch (err) {
 					console.error(err);
@@ -258,19 +270,21 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 	function saveImages() {
 		getActiveTabsInWin()
-			.then(function (tabs) {
+			.then(async function (tabs) {
 				const filtered = filterTabs(tabs);
 
 				if (filtered.length > 0) {
-					saveTabs(filtered);
+					await saveTabs(filtered);
 				}
 				else {
 					createNotice("Nothing to save.");
 				}
+
+				getActiveTabsInWin().then(closeWindowIfEmpty);
 			});
 	}
 
-	browser.commands.onCommand.addListener((command) => {
+	browser.commands.onCommand.addListener(function (command) {
 		switch (command) {
 			case "save-images": {
 				saveImages();
