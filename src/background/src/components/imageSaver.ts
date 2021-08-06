@@ -2,14 +2,18 @@ import { Downloads } from "../browser/Download";
 import { TabConnection } from "../browser/TabConnection";
 import { formatDateToReadableFormat } from "../utils/normalizeString";
 import { pluralize } from "../utils/pluralize";
+import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
+
+function getFilename(url: string): string {
+	return new URL(url).pathname.split("/").pop() ?? "";
+}
 
 /** Get all opened tabs prioritizing highlighted ones. */
-async function getActiveTabsInWin(): Promise<browser.tabs.Tab[]> {
-	const tabs = await browser.tabs.query({
-		discarded: false,
-		hidden: false,
-		windowId: browser.windows.WINDOW_ID_CURRENT,
-	});
+async function getActiveTabsInWin(windowId = browser.windows.WINDOW_ID_CURRENT, allTabs = false): Promise<browser.tabs.Tab[]> {
+	const tabs = await browser.tabs.query(Object.assign(
+		{ hidden: false, windowId },
+		allTabs ? {} : { discarded: false }
+	));
 
 	const filterNotHighlighted = tabs.filter((tab) => tab.highlighted);
 
@@ -20,10 +24,12 @@ async function getActiveTabsInWin(): Promise<browser.tabs.Tab[]> {
 
 function closeWindowIfEmpty(tabs: browser.tabs.Tab[]): void {
 	browser.windows.getAll().then(function (windows) {
+		// close window only if the only tab left is a "New Tab"
+		// created automatically after saving all images
 		if (windows.length > 1
 			&& tabs.length === 1
 			&& tabs[0].index === 0
-			&& tabs[0].url?.startsWith("about:")
+			&& tabs[0].title === "New Tab"
 			&& tabs[0].windowId
 		) {
 			browser.windows.remove(tabs[0].windowId);
@@ -110,6 +116,13 @@ async function evaluateLargeTarget(target: string, tabId?: number): Promise<stri
 		: [];
 }
 
+function normalizeFilename(filename: string): string {
+	return filename
+		.replace(/[.]{2,}/g, "_")
+		// put twitter image size indicators, :orig :large, before extension
+		.replace(/(\.\w+):(\w+)/, "\x20$2$1");
+}
+
 export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): void {
 
 	const downloads = new Downloads();
@@ -121,6 +134,9 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		if (opts.formatDateMonth) {
 			str = formatDateToReadableFormat(str);
 		}
+
+		// clean illegal characters in folder path
+		str = str.replace(/\.+$/, "");
 
 		return str;
 	}
@@ -183,8 +199,6 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					continue;
 				}
 
-				const filename = new URL(downloadURL).pathname.split("/").pop() ?? "";
-
 				const correctedPath = [
 					replaceSavePathPlaceholders(/\$([0-9]+);/g, matchedTargetUrl),
 					replaceSavePathPlaceholders(/\$1_([0-9]+);/g, downloadUrlMatch.length > 1 ? downloadUrlMatch : []),
@@ -193,16 +207,9 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 				const relativeFilepath = [
 					...correctedPath.split("/"),
-					filename
+					normalizeFilename(getFilename(downloadURL))
 				]
-					.map(function (x) {
-						return downloads.normalizeFilename(
-							x
-								.replace(/[.]{2,}/g, "_")
-								// put twitter image size indicators, :orig :large, before extension
-								.replace(/(\.\w+):(\w+)/, "\x20$2$1")
-						);
-					})
+					.map(replaceIllegalCharacters)
 					.join("/")
 					.replace(/\/{2,}/g, "/");
 
@@ -275,12 +282,12 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 				if (filtered.length > 0) {
 					await saveTabs(filtered);
+
+					getActiveTabsInWin(tabs[0].windowId, true).then(closeWindowIfEmpty);
 				}
 				else {
 					createNotice("Nothing to save.");
 				}
-
-				getActiveTabsInWin().then(closeWindowIfEmpty);
 			});
 	}
 

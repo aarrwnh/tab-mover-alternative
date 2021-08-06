@@ -14,7 +14,7 @@ export class Downloads extends Notifications {
 	): Promise<number> {
 		if (opts.filename) {
 			opts.filename = opts.filename.split("/").map((x) => {
-				return this.normalizeFilename(convertFullWidthToHalf(x));
+				return replaceIllegalCharacters(convertFullWidthToHalf(x));
 			}).join("/");
 
 			if (!/\.\w{3}$/.test(opts.filename)) {
@@ -49,9 +49,5 @@ export class Downloads extends Notifications {
 
 			browser.downloads.onChanged.addListener(onDownloadEnd);
 		});
-	}
-
-	public normalizeFilename(str: string): string {
-		return replaceIllegalCharacters(str);
 	}
 }
