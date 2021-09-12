@@ -116,11 +116,12 @@ export default function main(settings: Addon.Settings) {
 		// await Promise.all(unpinningTabs.map((p) => p.catch((e) => e)));
 
 		const filteredTabs = selectedTabs.reduce(function (o, tab) {
-			if (tab.cookieStoreId) {
-				if (!(tab.cookieStoreId in o)) {
-					o[tab.cookieStoreId] = [];
+			const { cookieStoreId, id } = tab;
+			if (cookieStoreId) {
+				if (!(cookieStoreId in o)) {
+					o[cookieStoreId] = [];
 				}
-				o[tab.cookieStoreId].push(tab.id || -1);
+				o[cookieStoreId].push(id || -1);
 			}
 			return o;
 		}, ({} as { [key: string]: number[] }));
@@ -136,7 +137,7 @@ export default function main(settings: Addon.Settings) {
 		}
 
 		for (const cookieId of cookieIDs) {
-			moveToWindow(
+			await moveToWindow(
 				moveableContainers.includes(cookieId) ? 0 : targetWindowId,
 				filteredTabs[cookieId]
 			);
@@ -154,10 +155,26 @@ export default function main(settings: Addon.Settings) {
 
 			for (const tab of selectedTabs) {
 				if (tab.id !== actTabId) {
-					browser.tabs.update(tab.id ?? -1, { active: false, highlighted: true });
+					await browser.tabs.update(tab.id ?? -1, { active: false, highlighted: true });
 				}
 			}
 		}
+
+		await unhighlightTabs(tab.id, tab.windowId);
+	}
+
+	/**
+	 * Remove highlight when moving tabs filtered by cookie-id.
+	 */
+	async function unhighlightTabs(currentTab: number | void, windowId: number | void) {
+		if (!windowId) return;
+		const tabs = await browser.tabs.query({ windowId, highlighted: true });
+		if (tabs.length < 2) return;
+		tabs.forEach(function (tab) {
+			if (!tab.id) return;
+			if (tab.id === currentTab) return;
+			browser.tabs.update(tab.id, { highlighted: false });
+		});
 	}
 
 	async function reopenTabs(tab: browser.tabs.Tab, targetWindowId: number) {
