@@ -41,7 +41,7 @@ module.exports = (_env, argv) => {
 
 		entry: {
 			background: "/src/background/index.ts",
-			options: "/src/options/main.js",
+			options: "/src/options/App.js",
 			content: "/src/content/content.ts"
 		},
 
