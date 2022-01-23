@@ -57,7 +57,6 @@
 		"no-useless-escape": 0,
 		"no-extra-boolean-cast": 0,
 		"no-control-regex": 0,
-		"no-unused-vars": 0,
 		"no-undef": 0,
 		"semi": [
 			"error",

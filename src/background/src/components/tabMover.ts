@@ -7,7 +7,11 @@ let windowMenuIds: (string | number)[] = [];
 let lastMenuInstanceId = 0;
 let nextMenuInstanceId = 1;
 
-export default function main(settings: Addon.Settings) {
+function cleanWindowTitle(title?: string): string {
+	return (title || "").replace(/.{3}Firefox.+/, "");
+}
+
+export default async function main(settings: Addon.Settings) {
 	/*
 	* Copyright (C) 2018 Guido Berhoerster <guido+tab-mover@berhoerster.name>
 	*
@@ -41,7 +45,7 @@ export default function main(settings: Addon.Settings) {
 	function navigateToTab(direction: 1 | -1) {
 		const { tabTravelDistance } = settings;
 
-		console.log("tabTravelDistance", tabTravelDistance);
+		Logger(`tabTravelDistance: ${ tabTravelDistance }`);
 
 		if (tabTravelDistance < 2) return;
 
@@ -49,7 +53,7 @@ export default function main(settings: Addon.Settings) {
 			windowId: WINDOW_ID_CURRENT,
 			hidden: false
 		})
-			.then((tabs) => {
+			.then(function (tabs) {
 				const currentTabIdx = tabs.findIndex((tab) => tab.active);
 				const targetIdx = currentTabIdx + (direction * tabTravelDistance);
 				const normalizeTargetIdx = Math.max(0, Math.min(targetIdx, tabs.length - 1));
@@ -86,7 +90,7 @@ export default function main(settings: Addon.Settings) {
 	}
 
 	/**
-	 * @param switchToActiveTab Force switch to tab bypassing the global setting.
+	 * @param switchToActiveTab Force switch to tab, bypassing the global setting.
 	 */
 	async function moveTabs(
 		tab: browser.tabs.Tab,
@@ -98,32 +102,32 @@ export default function main(settings: Addon.Settings) {
 
 		// if the current tab is part of a highlighted group then move the whole
 		// group
-		const selectedTabs = (tab.highlighted)
-			? await browser.tabs.query({
-				highlighted: true,
-				windowId: tab.windowId
-			})
+		const selectedTabs = tab.highlighted
+			? await getHighlightedTabs(tab.windowId)
 			: [tab];
 
 		const activeTab = selectedTabs.find((tab) => tab.active);
 
 		// NOTE:
-		// added in original addon, version-9 https://hg.guido-berhoerster.org/addons/firefox-addons/tab-mover/rev/aaed574396b8
-		// kind of don't see the point
+		// code below added in original addon, version-9
+		// https://hg.guido-berhoerster.org/addons/firefox-addons/tab-mover/rev/aaed574396b8
+		// kind of don't see the point, why would I want to move pinned tabs?
+		/*
 		// unpin tabs before moving, this matches the built-in behavior
-		// let unpinningTabs = selectedTabs.flatMap((tab) =>
-		// 	tab.pinned ? [browser.tabs.update(tab.id, { pinned: false })] : []);
-		// await Promise.all(unpinningTabs.map((p) => p.catch((e) => e)));
+		let unpinningTabs = selectedTabs.flatMap((tab) =>
+			tab.pinned ? [browser.tabs.update(tab.id, { pinned: false })] : []);
+		await Promise.all(unpinningTabs.map((p) => p.catch((e) => e)));
+		*/
 
-		const filteredTabs = selectedTabs.reduce(function (o, tab) {
+		const filteredTabs = selectedTabs.reduce(function (obj, tab) {
 			const { cookieStoreId, id } = tab;
 			if (cookieStoreId) {
-				if (!(cookieStoreId in o)) {
-					o[cookieStoreId] = [];
+				if (!(cookieStoreId in obj)) {
+					obj[cookieStoreId] = [];
 				}
-				o[cookieStoreId].push(id || -1);
+				obj[cookieStoreId].push(id || -1);
 			}
-			return o;
+			return obj;
 		}, ({} as { [key: string]: number[] }));
 
 		const cookieIDs = Object.keys(filteredTabs);
@@ -151,7 +155,7 @@ export default function main(settings: Addon.Settings) {
 			// mark the previously active tab active again before highlighting other
 			// tabs since this resets the selected tabs
 
-			await browser.tabs.update(actTabId ?? -1, { active: true });
+			await browser.tabs.update(actTabId, { active: true });
 
 			for (const tab of selectedTabs) {
 				if (tab.id !== actTabId) {
@@ -163,12 +167,10 @@ export default function main(settings: Addon.Settings) {
 		await unhighlightTabs(tab.id, tab.windowId);
 	}
 
-	/**
-	 * Remove highlight when moving tabs filtered by cookie-id.
-	 */
-	async function unhighlightTabs(currentTab: number | void, windowId: number | void) {
+	/** Remove highlight when moving tabs filtered by cookie-id. */
+	async function unhighlightTabs(currentTab?: number, windowId?: number) {
 		if (!windowId) return;
-		const tabs = await browser.tabs.query({ windowId, highlighted: true });
+		const tabs = await getHighlightedTabs(windowId);
 		if (tabs.length < 2) return;
 		tabs.forEach(function (tab) {
 			if (!tab.id) return;
@@ -180,10 +182,9 @@ export default function main(settings: Addon.Settings) {
 	async function reopenTabs(tab: browser.tabs.Tab, targetWindowId: number) {
 		// if the current tab is part of a highlighted group then reopen the whole
 		// group
-		let selectedTabs = (tab.highlighted) ? await browser.tabs.query({
-			highlighted: true,
-			windowId: tab.windowId
-		}) : [tab];
+		let selectedTabs = tab.highlighted
+			? await getHighlightedTabs(tab.windowId)
+			: [tab];
 
 		// filter out privileged tabs which cannot be reopened
 		selectedTabs = selectedTabs.filter(function (selectedTab) {
@@ -224,11 +225,8 @@ export default function main(settings: Addon.Settings) {
 	async function onMenuShown(_info: browser.menus._OnShownInfo, tab: browser.tabs.Tab) {
 		const menuInstanceId = nextMenuInstanceId++;
 		lastMenuInstanceId = menuInstanceId;
-		const targetWindows = await browser.windows.getAll({
-			populate: true,
-			windowTypes: ["normal"]
-		});
 		const creatingMenus: Promise<string | number>[] = [];
+		const targetWindows = await getCurrentWindows();
 		let moveMenuItems = 0;
 		let reopenMenuItems = 0;
 		for (const targetWindow of targetWindows) {
@@ -241,7 +239,7 @@ export default function main(settings: Addon.Settings) {
 				creatingMenus.push(createMenuItem({
 					onclick: (_info, tab) => moveTabs(tab, targetWindowId),
 					parentId: "move-menu",
-					title: targetWindow.title
+					title: cleanWindowTitle(targetWindow.title)
 				}));
 				moveMenuItems++;
 			}
@@ -249,7 +247,7 @@ export default function main(settings: Addon.Settings) {
 				creatingMenus.push(createMenuItem({
 					onclick: (_info, tab) => reopenTabs(tab, targetWindowId),
 					parentId: "reopen-menu",
-					title: targetWindow.title
+					title: cleanWindowTitle(targetWindow.title)
 				}));
 				reopenMenuItems++;
 			}
@@ -289,20 +287,29 @@ export default function main(settings: Addon.Settings) {
 	}
 
 	async function updateIconBadge(id: number) {
-
-		const windows = await browser.windows.getAll();
-
 		const { showLastWindowIDBadge } = settings;
+		const windows = await getCurrentWindows();
 
-		if (showLastWindowIDBadge) {
+		if (typeof id === "undefined") {
+			id = (await browser.windows.getLastFocused()).id || 0;
+		}
+
+		if (id > 0 && showLastWindowIDBadge) {
 			setBadgeText(windows.length > 1 ? String(id) : "+");
 		}
 
 		if (windows.length === 1) {
 			browser.browserAction.setTitle({ title: "" });
+			browser.browserAction.setBadgeBackgroundColor({
+				windowId: WINDOW_ID_CURRENT,
+				color: BADGE_COLOR_DEFAULT
+			});
+			return;
 		}
 
-		windows.forEach((y) => {
+		const incognitoWindowsSize = recentFocusedWindows.size(true);
+
+		windows.forEach(function (y) {
 			if (showLastWindowIDBadge) {
 				browser.browserAction.setBadgeBackgroundColor({
 					windowId: y.id,
@@ -318,9 +325,14 @@ export default function main(settings: Addon.Settings) {
 				path: `icons/web-browser-${ y.id === id ? "non-" : "" }active.svg`
 			});
 
+			if (y.incognito && incognitoWindowsSize === 1) {
+				setBadgeText("");
+				return;
+			}
+
 			if (y.id === id && y.title) {
 				// Set button tooltip pointing current tab title of the last active window
-				y.title = y.title.replace(" — Firefox Nightly", "");
+				y.title = cleanWindowTitle(y.title);
 				const title = y.title.slice(0, 20);
 				const ellipsis = y.title.length === title.length ? "" : "...";
 
@@ -329,42 +341,20 @@ export default function main(settings: Addon.Settings) {
 		});
 	}
 
-	(async () => {
-		await Promise.all([
-			// create submenus
-			createMenuItem({
-				id: "move-menu",
-				title: browser.i18n.getMessage("extensionName"),
-				enabled: false,
-				contexts: ["tab"]
-			}),
-			// createMenuItem({
-			// 	id: "reopen-menu",
-			// 	title: browser.i18n.getMessage("reopenInWindowMenu"),
-			// 	enabled: false,
-			// 	contexts: ["tab"]
-			// })
-		]);
-		browser.menus.onShown.addListener(onMenuShown);
-		browser.menus.onHidden.addListener(onMenuHidden);
-	})();
-
-	async function openLastRecentTab(): Promise<void> {
+	function openLastRecentTab(): void {
 		const { recentTabTimeout } = settings;
 
 		if (recentTabTimeout < 1) return;
 
-		return browser.tabs.query({ windowId: WINDOW_ID_CURRENT, hidden: false })
+		browser.tabs.query({ windowId: WINDOW_ID_CURRENT, hidden: false })
 			.then((tabs) => {
 				const now = new Date().getTime();
 
 				const sorted = tabs
-					.sort((a, b) => {
-						return b.id && a.id ? b.id - a.id : 0;
-					})
-					.filter((tab) => {
-						return !tab.active && (now - recentTabTimeout * 1000 - (tab.lastAccessed || 0)) < 0;
-					});
+					.sort((a, b) => b.id && a.id ? b.id - a.id : 0)
+					.filter((tab) =>
+						!tab.active && (now - recentTabTimeout * 1000 - (tab.lastAccessed || 0)) < 0
+					);
 
 				if (sorted[0]) {
 					browser.tabs.update(sorted[0].id ?? -1, { active: true });
@@ -380,187 +370,241 @@ export default function main(settings: Addon.Settings) {
 		return browser.tabs.query({ active: true, windowId: WINDOW_ID_CURRENT });
 	}
 
-	function sortSelectedTabs() {
-		browser.tabs.query({
-			windowId: WINDOW_ID_CURRENT,
-			highlighted: true
-		})
-			.then((selectedTabs) => {
-				if (selectedTabs.length > 2) {
-					selectedTabs.sort((a, b) => {
-						if (!a.title || !b.title) return 0;
-						const aTitle = a.title.toLowerCase();
-						const bTitle = b.title.toLowerCase();
-						if (aTitle < bTitle) return -1;
-						if (aTitle > bTitle) return 1;
-						return 0;
-					});
-					browser.tabs.move(selectedTabs.map((t) => t.id ?? -1), { index: selectedTabs[0].index });
+	async function getCurrentWindows(): Promise<browser.windows.Window[]> {
+		return await browser.windows.getAll({
+			windowTypes: ["normal"],
+		});
+	}
+
+	function getHighlightedTabs(windowId = WINDOW_ID_CURRENT): Promise<browser.tabs.Tab[]> {
+		return browser.tabs.query({ highlighted: true, windowId });
+	}
+
+	function sortTabsByTitle<In extends browser.tabs.Tab>(a: In, b: In): number {
+		if (!a.title || !b.title) return 0;
+		const aTitle = a.title.toLowerCase();
+		const bTitle = b.title.toLowerCase();
+		if (aTitle < bTitle) return -1;
+		if (aTitle > bTitle) return 1;
+		return 0;
+	}
+
+	async function sortSelectedTabs() {
+		const selectedTabs = await getHighlightedTabs();
+		if (selectedTabs.length > 2) {
+			const s = selectedTabs.sort(sortTabsByTitle).map((t) => t.id ?? -1);
+			await browser.tabs.move(s, { index: selectedTabs[0].index });
+		}
+		else {
+			await browser.notifications.create({
+				title: "Tab Mover Alternative",
+				message: "No tabs are selected to be sorted",
+				type: "basic"
+			});
+		}
+	}
+
+	function switchToPrevTabInWindow(info: browser.tabs._OnActivatedActiveInfo) {
+		browser.tabs.query({ windowId: info.windowId })
+			.then(function (tabs) {
+				const prevActiveTab = tabs.filter((tab) => tab.id === info.previousTabId);
+				if (prevActiveTab.length === 1) {
+					browser.tabs.update(prevActiveTab[0].id ?? -1, { active: true });
 				}
 			});
 	}
 
-	(() => {
-		const prevFocusedTabs: Map<number, browser.tabs._OnActivatedActiveInfo> = new Map();
+	await Promise.all([
+		// create submenus
+		createMenuItem({
+			id: "move-menu",
+			title: browser.i18n.getMessage("moveToWindowMenu"),
+			enabled: false,
+			contexts: ["tab"]
+		}),
+		createMenuItem({
+			id: "reopen-menu",
+			title: browser.i18n.getMessage("reopenInWindowMenu"),
+			enabled: false,
+			contexts: ["tab"]
+		})
+	]);
+	browser.menus.onShown.addListener(onMenuShown);
+	browser.menus.onHidden.addListener(onMenuHidden);
 
-		browser.tabs.onActivated.addListener((info) => {
-			// prevent update on tab removal
-			if (info.previousTabId === undefined) return;
-			prevFocusedTabs.set(info.windowId, info);
-		});
+	const recentFocusedTabs: Map<number, browser.tabs._OnActivatedActiveInfo> = new Map();
 
-		function switchToPrevTabInWindow(info: browser.tabs._OnActivatedActiveInfo) {
-			browser.tabs.query({ windowId: info.windowId })
-				.then((tabs) => {
-					const prevActiveTab = tabs.filter((tab) => tab.id === info.previousTabId);
-					if (prevActiveTab.length === 1) {
-						browser.tabs.update(prevActiveTab[0].id ?? -1, { active: true });
-					}
-				});
+	const recentFocusedWindows = (new class Wrapper<T extends number> {
+		private aMap = new Map<T, boolean>();
+		get(id: T): boolean | void {
+			return this.aMap.get(id);
 		}
-
-		browser.commands.onCommand.addListener((command) => {
-			if (command === "goto-last-open-tab") {
-				openLastRecentTab();
+		set(id: T, isIncognito = false): void {
+			this.aMap.set(id, isIncognito);
+		}
+		delete(id: T): void {
+			this.aMap.delete(id);
+		}
+		size(isIncognito = false): number {
+			return this.filter(isIncognito).length;
+		}
+		sizeAll(): number {
+			return this.aMap.size;
+		}
+		private filter(isIncognito: boolean): T[] {
+			const a: T[] = [];
+			for (const [id, incognito] of this.aMap.entries()) {
+				if (incognito === isIncognito) {
+					a.push(id);
+				}
 			}
-			else if (command === "last-active-tab") {
-				getCurrentWindow().then((currentWindow) => {
-					const id = currentWindow.id;
-					if (id && prevFocusedTabs.has(id)) {
-						const activeInfo = prevFocusedTabs.get(id);
-						if (activeInfo) {
-							switchToPrevTabInWindow(activeInfo);
-						}
+			return a;
+		}
+		first(isIncognito = false): T {
+			return this.filter(isIncognito)[0];
+		}
+		last(isIncognito = false): T {
+			return this.filter(isIncognito).reverse()[0];
+		}
+		recent(isIncognito = false): T {
+			return this.filter(isIncognito).reverse()[1];
+		}
+	});
+
+	browser.tabs.onActivated.addListener(function (info) {
+		// prevent update on tab removal
+		if (info.previousTabId === undefined) return;
+		recentFocusedTabs.set(info.windowId, info);
+	});
+
+	browser.commands.onCommand.addListener(function (command) {
+		if (command === "goto-last-open-tab") {
+			openLastRecentTab();
+		}
+		else if (command === "last-active-tab") {
+			getCurrentWindow().then(function (currentWindow) {
+				const id = currentWindow.id;
+				if (id && recentFocusedTabs.has(id)) {
+					const activeInfo = recentFocusedTabs.get(id);
+					if (activeInfo) {
+						switchToPrevTabInWindow(activeInfo);
 					}
-				});
-			}
-			else if (command === "sort-selected-tabs") {
-				sortSelectedTabs();
-			}
-		});
-	})();
-
-	(async () => {
-
-		const lastFocusedWindow: Set<number> = new Set();
-		(await browser.windows.getAll()).forEach((w) => lastFocusedWindow.add(w.id ?? -1));
-
-		async function onClicked(
-			tab: browser.tabs.Tab,
-			info?: browser.browserAction.OnClickData
-		): Promise<void> {
-
-			if (!info) return;
-
-			const { button, modifiers } = info;
-
-			const targetWindows = await browser.windows.getAll({
-				populate: true,
-				windowTypes: ["normal"]
+				}
 			});
+		}
+		else if (command === "sort-selected-tabs") {
+			sortSelectedTabs();
+		}
+	});
 
-			const lastActiveWindow = [...lastFocusedWindow].reverse()[1];
+	(await getCurrentWindows()).forEach((w) => recentFocusedWindows.set(w.id ?? -1));
 
-			if (targetWindows.length === 1) {
-				moveTabs(tab, 0); // create new window
-			}
-			else {
-				for (const targetWindow of targetWindows) {
-					if (targetWindow.id === tab.windowId) {
-						if (targetWindow.id && targetWindow.tabs && targetWindow.tabs.length === 1) {
-							lastFocusedWindow.delete(targetWindow.id);
-						}
-						// ignore active window
-						continue;
+	async function onClicked(
+		tab: browser.tabs.Tab,
+		info?: browser.browserAction.OnClickData
+	): Promise<void> {
+		if (!info) return;
+
+		const { button, modifiers } = info;
+
+		const targetWindows = await getCurrentWindows();
+
+		const lastActiveWindow = recentFocusedWindows.recent(tab.incognito);
+
+		if (targetWindows.length === 1) {
+			moveTabs(tab, 0); // create new window
+		}
+		else {
+			for (const targetWindow of targetWindows) {
+				if (targetWindow.id === tab.windowId) {
+					if (targetWindow.id && targetWindow.tabs && targetWindow.tabs.length === 1) {
+						recentFocusedWindows.delete(targetWindow.id);
 					}
+					// ignore active window
+					continue;
+				}
 
-					if (targetWindow.id) {
-						moveTabs(
-							tab,
-							lastActiveWindow > 0 ? lastActiveWindow : targetWindow.id,
-							modifiers.length > 0 && modifiers.includes("Shift")
+				if (targetWindow.id) {
+					moveTabs(
+						tab,
+						lastActiveWindow > 0 ? lastActiveWindow : targetWindow.id,
+						modifiers.length > 0 && modifiers.includes("Shift")
+							? true
+							: button === 1
 								? true
-								: button === 1
-									? true
-									: false
-						);
+								: false
+					);
+				}
+				break;
+			}
+		}
+	}
+
+	async function onFocusChanged(id: number): Promise<void> {
+		if (id === WINDOW_ID_NONE) return;
+
+		const win = await browser.windows.get(id);
+
+		const lastFocusedWindowId = recentFocusedWindows.last(win.incognito);
+
+		if (id > 0 && lastFocusedWindowId !== id) {
+			recentFocusedWindows.delete(id);
+			recentFocusedWindows.set(id, win.incognito);
+			updateIconBadge(lastFocusedWindowId);
+		}
+	}
+
+	async function onRemoved(id: number): Promise<void> {
+		const isIncognito = recentFocusedWindows.get(id) || false;
+		recentFocusedWindows.delete(id);
+		updateIconBadge(recentFocusedWindows.last(isIncognito));
+	}
+
+	browser.windows.onRemoved.addListener(onRemoved);
+	browser.windows.onFocusChanged.addListener(onFocusChanged);
+
+	browser.browserAction.onClicked.addListener(onClicked);
+	browser.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR_DEFAULT });
+	browser.browserAction.setBadgeTextColor({ color: "white" });
+
+	browser.commands.onCommand.addListener(function (command) {
+		switch (command) {
+			case "move-tabs": {
+				getCurrentTab().then((tab) => {
+					const lastActiveWindow = recentFocusedWindows.recent();
+					if (tab.length > 0 && lastActiveWindow > 0) {
+						moveTabs(tab[0], lastActiveWindow);
 					}
-					break;
-				}
+				});
+				break;
+			}
+			case "tab-jump-right": {
+				navigateToTab(1);
+				break;
+			}
+			case "tab-jump-left": {
+				navigateToTab(-1);
+				break;
+			}
+			case "move-current-tab-last": {
+				moveTabToEnd();
+				break;
 			}
 		}
+	});
 
-		function onFocusChanged(id: number) {
-			if (id === WINDOW_ID_NONE) return;
-
-			browser.windows.get(id)
-				.then((window) => {
-					if (window.type !== "normal") return;
-
-					if (id > 0) {
-						const last = [...lastFocusedWindow][lastFocusedWindow.size - 1];
-						if (last !== id) {
-							updateIconBadge(last);
-							lastFocusedWindow.delete(id);
-							lastFocusedWindow.add(id);
-						}
-					}
-				})
-				.catch(console.error);
+	// update/reset some things on options change
+	browser.storage.onChanged.addListener(async function () {
+		const { showLastWindowIDBadge } = settings;
+		if (!showLastWindowIDBadge) {
+			setBadgeText("");
 		}
-
-		function onRemoved(id: number) {
-			updateIconBadge([...lastFocusedWindow][0]);
-			lastFocusedWindow.delete(id);
+		if (showLastWindowIDBadge) {
+			setBadgeText(recentFocusedWindows.first());
 		}
+	});
 
-		browser.windows.onRemoved.addListener(onRemoved);
-		browser.windows.onFocusChanged.addListener(onFocusChanged);
-
-		browser.browserAction.onClicked.addListener(onClicked);
-		browser.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR_DEFAULT });
-		browser.browserAction.setBadgeTextColor({ color: "white" });
-
-		browser.commands.onCommand.addListener((command) => {
-			switch (command) {
-				case "move-tabs": {
-					getCurrentTab().then((tab) => {
-						const lastActiveWindow = [...lastFocusedWindow].reverse()[1];
-						if (tab.length > 0 && lastActiveWindow > 0) {
-							moveTabs(tab[0], lastActiveWindow);
-						}
-					});
-					break;
-				}
-				case "tab-jump-right": {
-					navigateToTab(1);
-					break;
-				}
-				case "tab-jump-left": {
-					navigateToTab(-1);
-					break;
-				}
-				case "move-current-tab-last": {
-					moveTabToEnd();
-					break;
-				}
-			}
-		});
-
-		if (lastFocusedWindow.size > 1) {
-			updateIconBadge([...lastFocusedWindow][1]);
-		}
-
-		// update/reset some things on options change
-		browser.storage.onChanged.addListener(async () => {
-			const { showLastWindowIDBadge } = settings;
-			if (!showLastWindowIDBadge) {
-				setBadgeText("");
-			}
-			if (showLastWindowIDBadge) {
-				setBadgeText([...lastFocusedWindow][0]);
-			}
-		});
-
-	})();
+	if (recentFocusedWindows.sizeAll() > 1) {
+		updateIconBadge(recentFocusedWindows.recent());
+	}
 }
