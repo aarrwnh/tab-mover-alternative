@@ -6,6 +6,7 @@
 	import InputArray from "./InputArray.svelte";
 	import Range from "./Range.svelte";
 	import MultiAccountContainer from "./MultiAccountContainers.svelte";
+	import { writable } from "svelte/store";
 
 	export let onSubmit: FormChangeCallback = undefined;
 	export let onChange: FormChangeCallback = undefined;
@@ -116,6 +117,23 @@
 	function resetSettings(ev: Event) {
 		(ev.target as HTMLButtonElement).textContent = "TODO";
 	}
+
+	let tabs: string[] = [];
+	// const _tabs = setContext([], {});
+	const activeTabId = writable(0);
+	activeTabId.subscribe((a) => {
+		// fix id if out of bounds
+		if (a > tabs.length - 1) {
+			activeTabId.set(0);
+		} else if (a < 0) {
+			activeTabId.set(tabs.length - 1);
+		}
+	});
+
+	function addTab(tabTitle: string) {
+		tabs = tabs.concat(tabTitle);
+		return "";
+	}
 </script>
 
 {#await getStorage()}
@@ -125,18 +143,40 @@
 		on:change|preventDefault={handleFormChange}
 		on:submit|preventDefault={handleFormSubmit}
 	>
-		{#each Object.entries(formFieldValues) as [sectionName, formSection]}
-			<section data-name={sectionName}>
-				<h2>{formSection.title}</h2>
+		<div
+			id="option-tabs"
+			on:wheel|preventDefault={(ev) => {
+				let inc = ev.deltaY > 0 ? 1 : ev.deltaY < 0 ? -1 : 0;
+				activeTabId.set($activeTabId + inc);
+			}}
+		>
+			{#each tabs as tab, id}
+				<div
+					class:active={$activeTabId === id}
+					class:notactive={$activeTabId !== id}
+					on:click={() => {
+						activeTabId.set(id);
+					}}
+				>
+					{tab}
+				</div>
+			{/each}
+		</div>
+
+		{#each Object.entries(formFieldValues) as [sectionName, formSection], id}
+			<section data-name={sectionName} class:hidden-section={id !== $activeTabId}>
+				{addTab(formSection.title)}
+
 				{#each formSection.opts as field}
 					{#if field.type === "Checkbox"}
 						<Checkbox
 							id={field.name}
 							name={field.name}
-							label={field.label}
 							annotation={field.annotation}
 							bind:checked={field.value}
-						/>
+						>
+							{field.label}
+						</Checkbox>
 					{:else if field.type === "Range"}
 						<Range
 							id={field.name}
@@ -176,14 +216,18 @@
 				{/each}
 			</section>
 		{/each}
+
 		<div class="form-buttons">
 			<hr />
+
 			<button id="submit" type="button" on:click={handleFormSubmit}>
 				{showSavedIndicator ? "Saved" : "Save"}
 			</button>
+
 			<button style="float: right;" id="reset" type="button" on:click={resetSettings}>
 				Reset
 			</button>
+
 			<button id="export" type="button" on:click={exportSettings}>Export</button>
 		</div>
 	</form>
@@ -192,5 +236,35 @@
 <style>
 	button {
 		cursor: pointer;
+	}
+
+	#option-tabs div:hover {
+		cursor: pointer;
+		background-color: var(--in-content-border-color);
+		border-color: var(--in-content-border-color);
+	}
+
+	#option-tabs {
+		border-top: 1px solid var(--in-content-border-color);
+		border-bottom: 1px solid var(--in-content-border-color);
+		padding: 0;
+		margin: 0;
+	}
+
+	#option-tabs div {
+		box-sizing: border-box;
+		display: inline-block;
+		border-top: 2px solid transparent;
+		padding: 0.75rem 1rem;
+		font-weight: bold;
+	}
+
+	.active {
+		border-color: var(--in-content-link-color) !important;
+		color: var(--in-content-link-color) !important;
+	}
+
+	.hidden-section {
+		display: none;
 	}
 </style>

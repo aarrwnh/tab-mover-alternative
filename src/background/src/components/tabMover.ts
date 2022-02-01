@@ -1,3 +1,5 @@
+import { createMenuItem } from "../browser/Menu";
+
 const { WINDOW_ID_CURRENT, WINDOW_ID_NONE } = browser.windows;
 const BADGE_COLOR_DEFAULT = "royalblue";
 const BADGE_COLOR_LAST_FOCUS = "red";
@@ -62,19 +64,6 @@ export default async function main(settings: Addon.Settings) {
 					browser.tabs.update(id, { active: true });
 				}
 			});
-	}
-
-	function createMenuItem(createProperties: browser.menus._CreateCreateProperties): Promise<string | number> {
-		return new Promise((resolve, reject) => {
-			const id = browser.menus.create(createProperties, () => {
-				if (browser.runtime.lastError) {
-					reject(browser.runtime.lastError);
-				}
-				else {
-					resolve(id);
-				}
-			});
-		});
 	}
 
 	async function moveToWindow(targetWindowId: number, tabs: number[]) {
@@ -307,7 +296,7 @@ export default async function main(settings: Addon.Settings) {
 			return;
 		}
 
-		const incognitoWindowsSize = recentFocusedWindows.size(true);
+		const incognitoWindowsSize = recentFocusedWindows.sizeof(true);
 
 		windows.forEach(function (y) {
 			if (showLastWindowIDBadge) {
@@ -414,21 +403,6 @@ export default async function main(settings: Addon.Settings) {
 			});
 	}
 
-	await Promise.all([
-		// create submenus
-		createMenuItem({
-			id: "move-menu",
-			title: browser.i18n.getMessage("moveToWindowMenu"),
-			enabled: false,
-			contexts: ["tab"]
-		}),
-		createMenuItem({
-			id: "reopen-menu",
-			title: browser.i18n.getMessage("reopenInWindowMenu"),
-			enabled: false,
-			contexts: ["tab"]
-		})
-	]);
 	browser.menus.onShown.addListener(onMenuShown);
 	browser.menus.onHidden.addListener(onMenuHidden);
 
@@ -436,19 +410,22 @@ export default async function main(settings: Addon.Settings) {
 
 	const recentFocusedWindows = (new class Wrapper<T extends number> {
 		private aMap = new Map<T, boolean>();
+		private aSet = new Set<T>();
 		get(id: T): boolean | void {
 			return this.aMap.get(id);
 		}
 		set(id: T, isIncognito = false): void {
+			this.aSet.add(id);
 			this.aMap.set(id, isIncognito);
 		}
 		delete(id: T): void {
+			this.aSet.delete(id);
 			this.aMap.delete(id);
 		}
-		size(isIncognito = false): number {
+		sizeof(isIncognito = false): number {
 			return this.filter(isIncognito).length;
 		}
-		sizeAll(): number {
+		get size(): number {
 			return this.aMap.size;
 		}
 		private filter(isIncognito: boolean): T[] {
@@ -458,7 +435,7 @@ export default async function main(settings: Addon.Settings) {
 					a.push(id);
 				}
 			}
-			return a;
+			return [...this.aSet].filter((id) => a.includes(id));
 		}
 		first(isIncognito = false): T {
 			return this.filter(isIncognito)[0];
@@ -548,16 +525,16 @@ export default async function main(settings: Addon.Settings) {
 		const lastFocusedWindowId = recentFocusedWindows.last(win.incognito);
 
 		if (id > 0 && lastFocusedWindowId !== id) {
+			updateIconBadge(lastFocusedWindowId);
 			recentFocusedWindows.delete(id);
 			recentFocusedWindows.set(id, win.incognito);
-			updateIconBadge(lastFocusedWindowId);
 		}
 	}
 
 	async function onRemoved(id: number): Promise<void> {
 		const isIncognito = recentFocusedWindows.get(id) || false;
 		recentFocusedWindows.delete(id);
-		updateIconBadge(recentFocusedWindows.last(isIncognito));
+		updateIconBadge(recentFocusedWindows.recent(isIncognito));
 	}
 
 	browser.windows.onRemoved.addListener(onRemoved);
@@ -604,7 +581,7 @@ export default async function main(settings: Addon.Settings) {
 		}
 	});
 
-	if (recentFocusedWindows.sizeAll() > 1) {
+	if (recentFocusedWindows.size > 1) {
 		updateIconBadge(recentFocusedWindows.recent());
 	}
 }

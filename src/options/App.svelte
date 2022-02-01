@@ -37,7 +37,7 @@
 
 	div {
 		padding: 1em;
-		max-width: 580px;
+		width: 100%;
 		margin: 0 auto;
 	}
 

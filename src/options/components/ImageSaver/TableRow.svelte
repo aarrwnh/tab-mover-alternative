@@ -2,6 +2,7 @@
 	import InputFindLargestTarget from "./InputFindLargestTarget.svelte";
 	import InputSaveFolder from "./InputSaveFolder.svelte";
 	import InputTarget from "./InputTarget.svelte";
+	import Checkbox from "../Checkbox.svelte";
 
 	export let target: string;
 	export let folder: string;
@@ -28,14 +29,10 @@
 
 <tr>
 	<td colspan="2">
-		<label>
-			Disabled:
-			<input type="checkbox" bind:checked={disabled} title="Disable rule" />
-		</label>
-		<label>
-			Largest:
-			<input type="checkbox" bind:checked={findLargest} title="Find largest on page" />
-		</label>
+		<Checkbox bind:checked={disabled} name="disabled[]">disabled</Checkbox>
+		<Checkbox bind:checked={findLargest} name="findLargest[]">
+			use save largest method
+		</Checkbox>
 	</td>
 </tr>
 
@@ -62,9 +59,3 @@
 		</td>
 	</tr>
 {/if}
-
-<style>
-	td label input {
-		cursor: pointer;
-	}
-</style>

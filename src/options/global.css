@@ -70,6 +70,6 @@ table .field-success {
 	border-color: green;
 }
 
-table input {
+table input[type="text"] {
 	width: 100%;
 }

@@ -26,38 +26,45 @@
 	}
 </script>
 
-Always move selected containers to a new window:
+<div>
+	Always move selected containers to a new window:
 
-<br />
+	<br />
 
-{#await loadContextualIdentities()}
-	<p>...</p>
-{:then identities}
-	{#each identities as identity}
-		<span
-			title={identity.cookieStoreId}
-			class={"available-container" +
-				(selected[identity.cookieStoreId] ? " selected" : "")}
-			style={`--color-code: ${identity.colorCode}; --color-code-dim: ${identity.colorCode}55; --icon-url: ${identity.iconUrl}`}
-		>
-			<label>
-				<input
-					type="checkbox"
-					bind:checked={selected[identity.cookieStoreId]}
-					on:change={() => {
-						refreshOnIdentityStateChange(identity.cookieStoreId);
-					}}
-				/>
+	{#await loadContextualIdentities()}
+		<p>...</p>
+	{:then identities}
+		{#each identities as identity}
+			<span
+				title={identity.cookieStoreId}
+				class={"available-container" +
+					(selected[identity.cookieStoreId] ? " selected" : "")}
+				style={`--color-code: ${identity.colorCode}; --color-code-dim: ${identity.colorCode}55; --icon-url: ${identity.iconUrl}`}
+			>
+				<label>
+					<input
+						type="checkbox"
+						bind:checked={selected[identity.cookieStoreId]}
+						on:change={() => {
+							refreshOnIdentityStateChange(identity.cookieStoreId);
+						}}
+					/>
 
-				<img class="container-icon" src={identity.iconUrl} alt={identity.name} />
+					<img class="container-icon" src={identity.iconUrl} alt={identity.name} />
 
-				{identity.name}
-			</label>
-		</span>
-	{/each}
-{/await}
+					{identity.name}
+				</label>
+			</span>
+		{/each}
+	{/await}
+</div>
 
 <style>
+	div {
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+
 	.available-container {
 		display: inline-flex;
 		border: 1px solid var(--identity-border-color);

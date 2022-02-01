@@ -106,7 +106,7 @@ async function evaluateLargeTarget(target: string, tabId?: number): Promise<stri
 				});
 		}
 	}
-	// treat `target` as RexExp and 
+	// treat `target` as RegExp and 
 	else {
 		matchAll = await tabConnection.matchAllText(target);
 	}
@@ -156,6 +156,11 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 	async function saveTabs(tabs: (browser.tabs.Tab & Addon.ImageSaverRule)[]) {
 
 		let completed = 0;
+		let tabCount = tabs.length;
+
+		if (tabCount === 0) return;
+
+		const prevBrowserBadgeText = await browser.browserAction.getBadgeText({});
 
 		for (const tab of tabs) {
 			const {
@@ -167,6 +172,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 				findLargestTarget
 			} = tab;
 
+			await browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
+
 			if (!url || disabled) {
 				continue;
 			}
@@ -177,6 +184,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 			const matchedTargetUrl = url.match(new RegExp(target));
 			if (matchedTargetUrl === null) {
+				console.log("E: ", url, target);
 				break;
 			}
 
@@ -248,7 +256,15 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 			}
 		}
 
-		createNotice(`Saved ${ completed } image${ pluralize(completed) } from ${ tabs.length } tab${ pluralize(tabs.length) }`);
+		await browser.browserAction.setBadgeText({ text: prevBrowserBadgeText });
+
+		const d = `Saved ${ completed } image${ pluralize(completed) }`;
+		if (completed === 0 || completed === tabs.length) {
+			createNotice(d);
+		}
+		else {
+			createNotice(`${ d } from ${ tabs.length } tab${ pluralize(tabs.length) }`);
+		}
 	}
 
 	/**

@@ -3,26 +3,33 @@
 
 	export let checked: boolean;
 	export let name: string;
-	export let id: string;
 
-	export let label: string | undefined;
-	export let annotation: string | undefined;
+	export let id: string = "";
+	// export let label: string = "";
+	export let annotation: string = "";
 </script>
 
 <div>
 	<label>
 		<input bind:checked {id} {name} type="checkbox" />
 
-		{label}
+		<slot />
 
-		<br />
-
-		<LabelAnnotation {annotation} />
+		{#if annotation !== ""}
+			<br />
+			<LabelAnnotation {annotation} />
+		{/if}
 	</label>
 </div>
 
 <style>
+	label input {
+		cursor: pointer;
+	}
+
 	div {
 		border-bottom: 1px solid rgb(75, 75, 75);
+		margin-bottom: 0.5rem;
+		margin-top: 0.5rem;
 	}
 </style>
