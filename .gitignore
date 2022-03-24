@@ -1,4 +1,5 @@
-/node_modules
-/.vscode
-yarn.lock
-/web-ext-artifacts
+node_modules
+.vscode
+web-ext-artifacts
+dist
+tsconfig.tsbuildinfo

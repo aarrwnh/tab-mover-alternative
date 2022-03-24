@@ -1,0 +1,118 @@
+{
+	"manifest_version": 2,
+	"name": "Tab Mover Alternative",
+	"version": "0.8.18",
+	"description": "Modified version of 'Tab Mover' addon by Guido Berhoerster.",
+	"author": "Guido Berhoerster, Wenereth Arkhilmor",
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "tab-mover-alternative@wenereth.arkhilmor",
+			"strict_min_version": "60.0"
+		}
+	},
+	"icons": {
+		"48": "icons/web-browser-active.svg"
+	},
+	"default_locale": "en",
+	"permissions": [
+		"activeTab",
+		"contextualIdentities",
+		"cookies",
+		"contextMenus",
+		"menus",
+		"tabs",
+		"storage",
+		"downloads",
+		"notifications"
+	],
+	"background": {
+		"scripts": [
+			"background.js"
+		]
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"*://*/*"
+			],
+			"js": [
+				"content/index.js"
+			]
+		}
+	],
+	"browser_action": {
+		"browser_style": true,
+		"default_icon": {
+			"32": "icons/web-browser-active.svg"
+		}
+	},
+	"options_ui": {
+		"open_in_tab": false,
+		"page": "options/index.html"
+	},
+	"commands": {
+		"last-active-tab": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+9",
+				"linux": "Ctrl+Alt+9"
+			},
+			"description": "Switch back to previously active tab"
+		},
+		"move-tabs": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+8",
+				"linux": "Ctrl+Alt+8"
+			},
+			"description": "Move currently selected tabs"
+		},
+		"tab-jump-left": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+4",
+				"linux": "Ctrl+Alt+4"
+			},
+			"description": "Jump by x tabs to left"
+		},
+		"tab-jump-right": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+6",
+				"linux": "Ctrl+Alt+6"
+			},
+			"description": "Jump by x tabs to right"
+		},
+		"move-current-tab-last": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+5",
+				"linux": "Ctrl+Alt+5"
+			},
+			"description": "Move current tab last"
+		},
+		"goto-last-open-tab": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+7",
+				"linux": "Ctrl+Alt+7"
+			},
+			"description": "Go to last recently opened tab (not navigated)"
+		},
+		"sort-selected-tabs": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+3",
+				"linux": "Ctrl+Alt+3"
+			},
+			"description": "Sort selected tabs by title"
+		},
+		"save-images": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+2",
+				"linux": "Ctrl+Alt+2"
+			},
+			"description": "Find and save images in the current window"
+		},
+		"save-bookmark": {
+			"suggested_key": {
+				"default": "Ctrl+Alt+1",
+				"linux": "Ctrl+Alt+1"
+			},
+			"description": "Save currently opened tab as bookmark"
+		}
+	}
+}

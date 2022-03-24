@@ -1,0 +1,50 @@
+{
+	"compilerOptions": {
+		"incremental": true,
+		"target": "ES2020",
+		"module": "ESNext",
+		"declaration": false,
+		"removeComments": true,
+		"noEmitOnError": false,
+		"baseUrl": "./",
+		"rootDir": "./",
+		"typeRoots": [
+			"./node_modules/@types"
+		],
+		"strict": true,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictPropertyInitialization": true,
+		"noImplicitThis": true,
+		"alwaysStrict": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"moduleResolution": "node",
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"disableSizeLimit": true,
+		"resolveJsonModule": true,
+		/**
+			Svelte Preprocess cannot figure out whether you have a value or a type, so tell TypeScript
+			to enforce using `import type` instead of `import` for Types.
+		*/
+		"importsNotUsedAsValues": "error",
+		"isolatedModules": true,
+		/**
+			To have warnings/errors of the Svelte compiler at the correct position,
+			enable source maps by default.
+		*/
+		"sourceMap": true
+	},
+	"include": [
+		"src"
+	],
+	"exclude": [
+		"**/node_modules",
+		"**/.*/"
+	]
+}
