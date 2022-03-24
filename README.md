@@ -2,19 +2,34 @@
 
 This is a modified version of [*Tab
 Mover*](https://code.guido-berhoerster.org/addons/firefox-addons/tab-mover/)
-addon for personal use only.
+addon for personal use only (i.e. as unsigned addon).
 
-## Differences from the original:
 
-- added options page ([[#4](https://github.com/wenereth-arkhilmor/tab-mover-alternative/pull/4)])
+## Differences from the original
+
+- added options page ([#4](https://github.com/wenereth-arkhilmor/tab-mover-alternative/pull/4))
 - toggle option for the unneeded behaviour added in the original addon v0.8:
-  switch to tab after move to window -- which is counterintuive 100% of time,
-	  e.g. when watching a video (multitasking)
-- move tabs with a one-click toolbar icon (which made right click menu kind-of
-  obsolete 99% of the time)
+  switch to tab after move to window - which is counter-intuitive 100% of
+  time, e.g. when watching a video (multitasking)
+- move tabs with a one-click toolbar icon (which made context menu kind-of
+  obsolete)
 - quickly switch to previously active tab with shortcut
 - always move specific containers to a new window
 - implemented bookmark and image saver (because why not?) [#4]
+
+
+## Tab mover
+
+Quickly move tabs between windows using just a keyboard, or by clicking on
+toolbar icon (also, not recommended, via the context menu). It can move tabs
+between two normal windows, two windows in incognito mode and from a normal
+window to an window in incognito mode.
+
+Since it is not possible to directly move tabs between normal windows and
+windows in incognito mode, addon can perform the equivalent of moving a tab by
+closing and reopening such tabs in another window, via the context menu only.
+
+*(modified original description)*
 
 
 ## Image saver
@@ -45,11 +60,13 @@ Sort selected tabs by title | Ctrl+Alt+3
 Find and save images in the current window | Ctrl+Alt+2
 Save currently opened tab as bookmark | Ctrl+Alt+1
 
+
 ## Build
 
 ```
 yarn build
 ```
+
 
 ### Debug/Run
 
@@ -57,7 +74,8 @@ yarn build
 yarn debug
 ```
 
-## TODO:
+
+## TODO
 
 - move all highlighted tabs to end position, not just a single one
 - img-saver: prefer to save tabs when selected (if 1 tab is selected it will

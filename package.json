@@ -11,7 +11,7 @@
 		"build": "npm-run-all --print-name copy build:main build:rename build:mount",
 		"build:main": "web-ext build",
 		"build:rename": "cd web-ext-artifacts && bash -c \"ls | sed -n 's/\\(.*\\)\\.zip/mv \"\\\\1.zip\" \"\\\\1.xpi\"/p' | bash\"",
-		"build:mount": "bash ./bin/mount.sh ../web-ext-artifacts/tab_mover_alternative-%npm_package_version%.xpi",
+		"build:mount": "bash ./scripts/mount.sh ../web-ext-artifacts/tab_mover_alternative-%npm_package_version%.xpi",
 		"clean": "rm -rf dist/* && mkdir ./dist/_locales",
 		"copy": "npm-run-all --parallel --print-label copy:*",
 		"copy:manifest": "shx cp src/manifest.json dist/",
