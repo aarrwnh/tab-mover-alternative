@@ -1,5 +1,37 @@
 const { WINDOW_ID_CURRENT } = browser.windows;
 
+export async function closeWindowIfEmpty(tabs: browser.tabs.Tab[]): Promise<void> {
+	const windows = await browser.windows.getAll();
+	// close window only if the only tab left is a "New Tab"
+	// created automatically after saving all images
+	if (windows.length > 1
+		&& tabs.length === 1
+		&& tabs[0].index === 0
+		&& tabs[0].title === "New Tab"
+		&& tabs[0].windowId
+	) {
+		await browser.windows.remove(tabs[0].windowId);
+	}
+}
+
+/** Get all opened tabs prioritizing highlighted ones. */
+export async function getActiveTabsInWin(
+	windowId = browser.windows.WINDOW_ID_CURRENT,
+	allTabs = false
+): Promise<browser.tabs.Tab[]> {
+	const tabs = await browser.tabs.query(Object.assign(
+		{ hidden: false, windowId },
+		allTabs ? {} : { discarded: false }
+	));
+
+	const filterNotHighlighted = tabs.filter((tab) => tab.highlighted);
+
+	return filterNotHighlighted.length > 1
+		? filterNotHighlighted
+		: tabs;
+}
+
+// TODO: finish rewrite...
 export class TabUtils {
 
 	private _currentTabQuery: browser.tabs.Tab[] = [];

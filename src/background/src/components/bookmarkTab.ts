@@ -1,6 +1,6 @@
 import { Downloads } from "../browser/Download";
 import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
-import { TabUtils } from "../browser/Tab";
+import { closeWindowIfEmpty, getActiveTabsInWin, TabUtils } from "../browser/Tab";
 import { TabConnection } from "../browser/TabConnection";
 
 type InternetShortcutFields = {
@@ -142,7 +142,8 @@ export default function main(
 	async function saveBookmark(): Promise<void> {
 		const tabIDs = await bookmarks.saveSelectedTabs();
 		if (settings.bookmarksCloseOnComplete && tabIDs && tabIDs.length > 0) {
-			bookmarks.closeTabs(tabIDs);
+			await bookmarks.closeTabs(tabIDs);
+			getActiveTabsInWin().then(closeWindowIfEmpty);
 		}
 	}
 

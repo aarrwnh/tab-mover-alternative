@@ -1,4 +1,5 @@
 import { Downloads } from "../browser/Download";
+import { closeWindowIfEmpty, getActiveTabsInWin } from "../browser/Tab";
 import { TabConnection } from "../browser/TabConnection";
 import { formatDateToReadableFormat } from "../utils/normalizeString";
 import { pluralize } from "../utils/pluralize";
@@ -6,35 +7,6 @@ import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
 
 function getFilename(url: string): string {
 	return new URL(url).pathname.split("/").pop() ?? "";
-}
-
-/** Get all opened tabs prioritizing highlighted ones. */
-async function getActiveTabsInWin(windowId = browser.windows.WINDOW_ID_CURRENT, allTabs = false): Promise<browser.tabs.Tab[]> {
-	const tabs = await browser.tabs.query(Object.assign(
-		{ hidden: false, windowId },
-		allTabs ? {} : { discarded: false }
-	));
-
-	const filterNotHighlighted = tabs.filter((tab) => tab.highlighted);
-
-	return filterNotHighlighted.length > 1
-		? filterNotHighlighted
-		: tabs;
-}
-
-function closeWindowIfEmpty(tabs: browser.tabs.Tab[]): void {
-	browser.windows.getAll().then(function (windows) {
-		// close window only if the only tab left is a "New Tab"
-		// created automatically after saving all images
-		if (windows.length > 1
-			&& tabs.length === 1
-			&& tabs[0].index === 0
-			&& tabs[0].title === "New Tab"
-			&& tabs[0].windowId
-		) {
-			browser.windows.remove(tabs[0].windowId);
-		}
-	});
 }
 
 function replaceSavePathPlaceholders(regex: RegExp, placeholders: string[]) {
