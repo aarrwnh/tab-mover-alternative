@@ -1,4 +1,4 @@
-export async function setup() {
+export async function setupSettings() {
 
 	const DEFAULT: Addon.DefaultSettings = {
 		switchToTabAfterMoving: false,

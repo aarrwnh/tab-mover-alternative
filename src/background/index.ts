@@ -1,11 +1,11 @@
-import { setup } from "./src/settings";
-import initTabMover from "./src/components/tabMover";
-import initBookmarkTab from "./src/components/bookmarkTab";
-import initImageSaver from "./src/components/imageSaver";
+import { setupSettings } from "./src/settings";
+import setupTabMover from "./src/components/tabMover";
+import setupBookmarkTab from "./src/components/bookmarkTab";
+import setupImageSaver from "./src/components/imageSaver";
 import { createMenuItem } from "./src/browser/Menu";
 
 async function main() {
-	const settings = await setup();
+	const settings = await setupSettings();
 
 	await Promise.all([
 		// create submenus
@@ -23,9 +23,9 @@ async function main() {
 		})
 	]);
 
-	initTabMover(settings);
+	setupTabMover(settings);
 
-	initBookmarkTab(settings, {
+	setupBookmarkTab(settings, {
 		notifications: {
 			title: "Tab Mover Alternative",
 			message: "Bookmark saved",
@@ -34,7 +34,7 @@ async function main() {
 		}
 	});
 
-	initImageSaver(settings, {
+	setupImageSaver(settings, {
 		notifications: {
 			title: "Tab image saver",
 			type: "basic",
