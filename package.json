@@ -1,7 +1,7 @@
 {
 	"name": "tab-mover-alternative",
 	"description": "Fork of 'Tab Mover' addon for personal use only.",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MPL-2.0",
 	"keywords": [
 		"firefox",
@@ -24,27 +24,25 @@
 		"_watch:locales": "onchange -p 500 -v \"locales/\" -- yarn run copy:locales",
 		"watch:files": "onchange -p 500 -v \"src/content/*\" \"src/icons/*\" \"src/options/*\" \"src/popup/*\" -- yarn run copy:files"
 	},
-	"dependencies": {
-		"svelte": "3.38.3",
-		"svelte-loader": "3.1.2"
-	},
 	"devDependencies": {
 		"@types/firefox-webext-browser": "^82.0.0",
 		"@types/node": "^15.12.4",
-		"@typescript-eslint/eslint-plugin": "^4.28.0",
-		"@typescript-eslint/parser": "^4.28.0",
+		"@typescript-eslint/eslint-plugin": "^5.25.0",
+		"@typescript-eslint/parser": "5.25.0",
 		"cross-env": "^7.0.3",
 		"eslint": "^7.29.0",
 		"fork-ts-checker-webpack-plugin": "^6.2.12",
 		"npm-run-all": "^4.1.5",
 		"onchange": "^7.1.0",
 		"shx": "^0.3.3",
+		"svelte": "3.38.3",
 		"svelte-check": "2.2.0",
+		"svelte-loader": "3.1.2",
 		"svelte-preprocess": "4.7.3",
 		"terser-webpack-plugin": "^5.1.4",
-		"ts-loader": "^9.2.3",
+		"ts-loader": "9.3.0",
 		"tslib": "^2.3.0",
-		"typescript": "^4.3.4",
+		"typescript": "4.6.4",
 		"webpack": "^5.40.0",
 		"webpack-cli": "^4.7.2",
 		"webpack-hook-plugin": "^1.0.7"
