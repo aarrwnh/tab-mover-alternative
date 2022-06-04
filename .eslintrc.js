@@ -1,45 +1,29 @@
-{
-	"root": true,
-	"env": {
-		"node": true,
-		"es2020": true,
-		"browser": true,
-		"webextensions": true
+module.exports = {
+	root: true,
+	env: {
+		node: true,
+		browser: true,
+		webextensions: true
 	},
-	"parser": "@typescript-eslint/parser",
-	"extends": [
+	parser: "@typescript-eslint/parser",
+	parserOptions: {
+		ecmaVersion: "latest",
+		allowImportExportEverywhere: true,
+		tsconfigRootDir: __dirname,
+		project: [
+			"tsconfig.json"
+		]
+	},
+	extends: [
 		"eslint:recommended",
 		"plugin:@typescript-eslint/eslint-recommended",
+		"plugin:@typescript-eslint/recommended-requiring-type-checking",
 		"plugin:@typescript-eslint/recommended"
 	],
-	"parserOptions": {
-		"ecmaVersion": 2020,
-		"sourceType": "module",
-		"allowImportExportEverywhere": true
-	},
-	"rules": {
+	rules: {
 		"arrow-parens": 2,
 		"no-empty": 0,
-		"quotes": [
-			"error",
-			"double",
-			{
-				"avoidEscape": true
-			}
-		],
-		"@typescript-eslint/ban-types": [
-			"warn",
-			{
-				"types": {
-					"Function": {
-						"fixWith": "((...params: any[]) => any)"
-					},
-					"{}": {
-						"message": "Use object instead?"
-					}
-				}
-			}
-		],
+		"quotes": 0,
 		"@typescript-eslint/no-unsafe-member-access": 0,
 		"@typescript-eslint/no-floating-promises": 0,
 		"@typescript-eslint/no-misused-promises": 0,
@@ -96,6 +80,7 @@
 			}
 		],
 		"no-extra-bind": "warn",
+		"no-unused-vars": 2,
 		"@typescript-eslint/no-unused-vars": [
 			"warn",
 			{
