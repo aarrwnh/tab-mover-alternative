@@ -1,7 +1,7 @@
 {
 	"name": "tab-mover-alternative",
 	"description": "Fork of 'Tab Mover' addon for personal use only.",
-	"version": "1.0.1",
+	"version": "1.1.0",
 	"license": "MPL-2.0",
 	"keywords": [
 		"firefox",
@@ -25,7 +25,7 @@
 		"watch:files": "onchange -p 500 -v \"src/content/*\" \"src/icons/*\" \"src/options/*\" \"src/popup/*\" -- yarn run copy:files"
 	},
 	"devDependencies": {
-		"@types/firefox-webext-browser": "^82.0.0",
+		"@types/firefox-webext-browser": "^94.0.0",
 		"@types/node": "^15.12.4",
 		"@typescript-eslint/eslint-plugin": "^5.25.0",
 		"@typescript-eslint/parser": "5.25.0",

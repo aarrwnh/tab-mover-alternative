@@ -117,7 +117,7 @@ export default async function main(settings: Addon.Settings) {
 				obj[cookieStoreId].push(id || -1);
 			}
 			return obj;
-		}, ({} as { [key: string]: number[] }));
+		}, ({} as Record<string, number[]>));
 
 		const cookieIDs = Object.keys(filteredTabs);
 		const defaultTabIdx = cookieIDs.indexOf("firefox-default");
@@ -226,7 +226,9 @@ export default async function main(settings: Addon.Settings) {
 			}
 			if (tab.incognito === targetWindow.incognito) {
 				creatingMenus.push(createMenuItem({
-					onclick: (_info, tab) => moveTabs(tab, targetWindowId),
+					onclick(_info, tab) {
+						moveTabs(tab, targetWindowId);
+					},
 					parentId: "move-menu",
 					title: cleanWindowTitle(targetWindow.title)
 				}));
@@ -234,7 +236,9 @@ export default async function main(settings: Addon.Settings) {
 			}
 			else {
 				creatingMenus.push(createMenuItem({
-					onclick: (_info, tab) => reopenTabs(tab, targetWindowId),
+					onclick(_info, tab) {
+						reopenTabs(tab, targetWindowId);
+					},
 					parentId: "reopen-menu",
 					title: cleanWindowTitle(targetWindow.title)
 				}));
@@ -262,7 +266,7 @@ export default async function main(settings: Addon.Settings) {
 		browser.menus.refresh();
 	}
 
-	async function onMenuHidden() {
+	function onMenuHidden() {
 		lastMenuInstanceId = 0;
 		browser.menus.update("move-menu", { enabled: false });
 		browser.menus.update("reopen-menu", { enabled: false });
@@ -531,7 +535,7 @@ export default async function main(settings: Addon.Settings) {
 		}
 	}
 
-	async function onRemoved(id: number): Promise<void> {
+	function onRemoved(id: number): void {
 		const isIncognito = recentFocusedWindows.get(id) || false;
 		recentFocusedWindows.delete(id);
 		updateIconBadge(recentFocusedWindows.recent(isIncognito));
@@ -571,7 +575,7 @@ export default async function main(settings: Addon.Settings) {
 	});
 
 	// update/reset some things on options change
-	browser.storage.onChanged.addListener(async function () {
+	browser.storage.onChanged.addListener(function () {
 		const { showLastWindowIDBadge } = settings;
 		if (!showLastWindowIDBadge) {
 			setBadgeText("");

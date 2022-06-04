@@ -7,7 +7,7 @@ type InternetShortcutFields = {
 	url: string;
 	origin: string;
 	description?: string;
-}
+};
 
 export default function main(
 	settings: Addon.Settings,
@@ -48,11 +48,11 @@ export default function main(
 			return URL.createObjectURL(urlFileBodyBlob);
 		}
 
-		private async _composeFilename(
+		private _composeFilename(
 			title: string,
 			hostname: string,
 			date?: string
-		): Promise<string> {
+		): string {
 			const subdirOrPrefix = settings.bookmarksAlwaysToChildFolder.includes(hostname)
 				? `${ hostname }/`
 				: `[${ hostname }] `;
@@ -102,7 +102,7 @@ export default function main(
 					throw new Error("no title");
 				}
 
-				const filename = await this._composeFilename(title, hostname, date);
+				const filename = this._composeFilename(title, hostname, date);
 
 				if ((41 + filename.length) > 260) {
 					console.error("filename.length", 41 + filename.length);
@@ -120,7 +120,8 @@ export default function main(
 
 						downloads.showNotification(
 							makeNotificationOpts(
-								(opts.notifications ? opts.notifications.message : "") + `: ${ title }`
+								(opts.notifications ? String(opts.notifications.message) : "")
+								+ `: ${ title }`
 							)
 						);
 					})
@@ -143,6 +144,7 @@ export default function main(
 		const tabIDs = await bookmarks.saveSelectedTabs();
 		if (settings.bookmarksCloseOnComplete && tabIDs && tabIDs.length > 0) {
 			await bookmarks.closeTabs(tabIDs);
+			bookmarks.closeWindowIfEmpty();
 			getActiveTabsInWin().then(closeWindowIfEmpty);
 		}
 	}
@@ -152,7 +154,9 @@ export default function main(
 		title: "save current tab as bookmark file",
 		enabled: true,
 		contexts: ["browser_action"],
-		onclick: saveBookmark,
+		onclick() {
+			saveBookmark();
+		},
 		icons: { 32: "icons/bookmark.svg" }
 	});
 

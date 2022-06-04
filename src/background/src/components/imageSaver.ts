@@ -3,7 +3,6 @@ import { closeWindowIfEmpty, getActiveTabsInWin } from "../browser/Tab";
 import { TabConnection } from "../browser/TabConnection";
 import { formatDateToReadableFormat } from "../utils/normalizeString";
 import { pluralize } from "../utils/pluralize";
-import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
 
 function getFilename(url: string): string {
 	return new URL(url).pathname.split("/").pop() ?? "";
@@ -47,7 +46,7 @@ function validateXPathTag(target: string): {
 		}
 
 		return {
-			attr: (attr.slice(1, -1) as any) ?? "src",
+			attr: (attr.slice(1, -1) as "href") ?? "src",
 			path // TODO: validate/sanitize/escape
 		};
 	}
@@ -192,29 +191,24 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					...correctedPath.split("/"),
 					normalizeFilename(getFilename(downloadURL))
 				]
-					.map(replaceIllegalCharacters)
 					.join("/")
-					.replace(/\/{2,}/g, "/");
+					.replace(/\/{2,}/g, "/")
+					.replace(/[ﾟ]/g, "");
 
-				try {
-					console.debug(downloadURL, relativeFilepath);
+				console.debug(downloadURL, relativeFilepath);
 
-					const err = await downloads.start({
-						url: downloadURL,
-						filename: relativeFilepath,
-						// TODO: change to "prompt" when implemented in FF?
-						conflictAction: "overwrite",
-						headers: [{
-							name: "Referer",
-							value: url
-						}]
-					}, true)
-						.catch((err: Error) => err);
+				const downloadId = await downloads.start({
+					url: downloadURL,
+					filename: relativeFilepath,
+					// TODO: change to "prompt" when implemented in FF?
+					conflictAction: "overwrite",
+					headers: [{
+						name: "Referer",
+						value: url
+					}]
+				}, true);
 
-					if (err instanceof Error) {
-						throw new Error(err.message + ": " + url);
-					}
-
+				if (downloadId !== -1) {
 					if (settings.imageSaverCloseOnComplete && tab.id) {
 						browser.tabs.remove(tab.id);
 					}
@@ -224,9 +218,6 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					SAVED_IN_CURRENT_SESSION.push(downloadURL);
 
 					completed++;
-				}
-				catch (err) {
-					console.error(err);
 				}
 			}
 		}
@@ -292,7 +283,9 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		title: "Save images from tabs",
 		enabled: true,
 		contexts: ["browser_action"],
-		onclick: saveImages,
+		onclick() {
+			saveImages();
+		},
 		icons: { 32: "icons/image.svg" }
 	});
 }
