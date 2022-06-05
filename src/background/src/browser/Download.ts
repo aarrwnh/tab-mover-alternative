@@ -3,11 +3,6 @@ import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
 import { Notifications } from "./Notifications";
 
 export class Downloads extends Notifications {
-
-	constructor() {
-		super();
-	}
-
 	async start(
 		opts: browser.downloads._DownloadOptions,
 		removeAfterComplete = false,
@@ -58,24 +53,29 @@ export class Downloads extends Notifications {
 	}
 
 	private _onDownloadStateChange(downloadID: number, removeAfterComplete = false): Promise<number> {
-		return new Promise((resolve, reject) => {
-			const onDownloadEnd = (delta: browser.downloads._OnChangedDownloadDelta): void => {
+		return new Promise(function (resolve) {
+			function erase(id: number): void {
+				browser.downloads.erase({ id });
+				browser.downloads.onChanged.removeListener(onDownloadEnd);
+			}
+
+			function onDownloadEnd(delta: browser.downloads._OnChangedDownloadDelta): void {
 				if (delta.state?.current === "interrupted") {
-					reject(new Error(delta.error?.current));
+					console.error(new Error(delta.error?.current));
+					resolve(-1);
+					erase(delta.id);
 					return;
 				}
-
-				if (
-					removeAfterComplete
-					&& delta.id === downloadID
-					&& delta.state?.current !== "in_progress"
-				) {
-					browser.downloads.onChanged.removeListener(onDownloadEnd);
-					browser.downloads.erase({ id: delta.id });
+				else {
+					resolve(downloadID);
 				}
 
-				resolve(downloadID);
-			};
+				if (removeAfterComplete
+					&& delta.id === downloadID
+					&& delta.state?.current === "complete") {
+					erase(delta.id);
+				}
+			}
 
 			browser.downloads.onChanged.addListener(onDownloadEnd);
 		});

@@ -100,7 +100,8 @@ function normalizeFilename(filename: string): string {
 export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): void {
 
 	const downloads = new Downloads();
-	const SAVED_IN_CURRENT_SESSION: string[] = [];
+
+	const PARSED_IN_CURRENT_SESSION: string[] = [];
 
 	function normalizePath(str: string) {
 		str = decodeURIComponent(str);
@@ -127,6 +128,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 	async function saveTabs(tabs: (browser.tabs.Tab & Addon.ImageSaverRule)[]) {
 
 		let completed = 0;
+
 		let tabCount = tabs.length;
 
 		if (tabCount === 0) return;
@@ -149,7 +151,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 				continue;
 			}
 
-			if (SAVED_IN_CURRENT_SESSION.includes(url)) {
+			if (PARSED_IN_CURRENT_SESSION.includes(url)) {
 				continue;
 			}
 
@@ -174,7 +176,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 			for (const downloadUrlMatch of currentTabDownloadURLs) {
 
 				const downloadURL = downloadUrlMatch[0];
-				if (SAVED_IN_CURRENT_SESSION.includes(downloadURL)) {
+				if (PARSED_IN_CURRENT_SESSION.includes(downloadURL)) {
 					continue;
 				}
 
@@ -212,10 +214,10 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 					console.log("saved image:", tab.url, tab.url === downloadURL ? null : downloadURL);
 
-					SAVED_IN_CURRENT_SESSION.push(downloadURL);
-
 					completed++;
 				}
+
+				PARSED_IN_CURRENT_SESSION.push(downloadURL);
 			}
 		}
 
