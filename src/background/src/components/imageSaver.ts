@@ -115,12 +115,9 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		return str;
 	}
 
-	function createNotice(msg: string) {
+	function createNotice(message: string) {
 		if (opts.notifications) {
-			browser.notifications.create({
-				...opts.notifications,
-				message: msg,
-			});
+			browser.notifications.create({ ...opts.notifications, message });
 		}
 		else {
 			throw new Error("opts.notifications are required");
