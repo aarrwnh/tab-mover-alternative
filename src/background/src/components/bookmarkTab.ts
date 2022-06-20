@@ -1,6 +1,6 @@
 import { Downloads } from "../browser/Download";
 import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
-import { closeWindowIfEmpty, getActiveTabsInWin, TabUtils } from "../browser/Tab";
+import { getActiveTabsInWin, Tabs } from "../browser/Tab";
 import { TabConnection } from "../browser/TabConnection";
 
 type InternetShortcutFields = {
@@ -23,12 +23,7 @@ export default function main(
 
 	const downloads = new Downloads();
 
-	class Bookmarks extends TabUtils {
-
-		constructor() {
-			super();
-		}
-
+	class Bookmarks {
 		private _createURLFileBody({ url, origin, description }: InternetShortcutFields) {
 			const format = [
 				"[DEFAULT]",
@@ -68,8 +63,8 @@ export default function main(
 			return filename;
 		}
 
-		async saveSelectedTabs(): Promise<number[] | void> {
-			const tabs = await this.getCurrentlyHighlightedInWindow();
+		async saveSelectedTabs(): Promise<number[]> {
+			const tabs = await Tabs.getCurrentTabHighlighted();
 			const processedTabs: number[] = [];
 
 			for (const tab of tabs) {
@@ -142,10 +137,10 @@ export default function main(
 
 	async function saveBookmark(): Promise<void> {
 		const tabIDs = await bookmarks.saveSelectedTabs();
-		if (settings.bookmarksCloseOnComplete && tabIDs && tabIDs.length > 0) {
-			await bookmarks.closeTabs(tabIDs);
-			bookmarks.closeWindowIfEmpty();
-			getActiveTabsInWin().then(closeWindowIfEmpty);
+		if (settings.bookmarksCloseOnComplete && tabIDs.length > 0) {
+			await Tabs.close(tabIDs);
+			await getActiveTabsInWin();
+			await Tabs.closeEmptyWindow();
 		}
 	}
 

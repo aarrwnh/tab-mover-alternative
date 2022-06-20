@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 
 # open a js/xpi/zip file in browser for auto detection, either by tampermonkey
@@ -9,7 +8,7 @@ if [[ ! $1 ]]; then
 	exit 1
 fi
 
-current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
+current_dir="$(cd "$(dirname "$0")" >/dev/null && pwd)"
 path=$(readlink -f "$current_dir/$1")
 script_path="${path/\/d/d:}"
 
@@ -25,4 +24,3 @@ if [[ "$OSTYPE" == "msys" ]]; then
 	command "C:\Program Files\Firefox Nightly\firefox.exe" --new-tab "file:\\$script_path"
 	exit
 fi
-

@@ -8,6 +8,8 @@ function getFilename(url: string): string {
 	return new URL(url).pathname.split("/").pop() ?? "";
 }
 
+type CustomTab = browser.tabs.Tab & Addon.ImageSaverRule;
+
 function replaceSavePathPlaceholders(regex: RegExp, placeholders: string[]) {
 	return function (folder: string) {
 		return folder.replace(regex, function (_: string, m: any) {
@@ -59,18 +61,20 @@ function validateRegExpTag(target: string): RegExp | void {
 	}
 }
 
-async function evaluateLargeTarget(target: string, tabId?: number): Promise<string[][]> {
-	let matchAll: string[][] = [];
+async function evaluateLargeTarget(tab: CustomTab): Promise<string[][]> {
+	let matches: string[][] = [];
 
-	const tabConnection = new TabConnection(tabId);
+	const tabConnection = new TabConnection(tab.id);
 
-	if (target.includes("</XPath>")) {
-		const regExpFromTag = target.includes("</RegExp>") ? validateRegExpTag(target) : void 0;
+	if (tab.findLargestTarget.includes("</XPath>")) {
+		const regExpFromTag = tab.findLargestTarget.includes("</RegExp>")
+			? validateRegExpTag(tab.findLargestTarget)
+			: void 0;
 
-		const XPathFromTag = validateXPathTag(target);
+		const XPathFromTag = validateXPathTag(tab.findLargestTarget);
 
 		if (XPathFromTag) {
-			matchAll = (await tabConnection.queryXPath(XPathFromTag.path, XPathFromTag.attr))
+			matches = (await tabConnection.queryXPath(XPathFromTag.path, XPathFromTag.attr) || [])
 				.map((x) => {
 					if (regExpFromTag) {
 						const match = x.match(regExpFromTag);
@@ -82,11 +86,11 @@ async function evaluateLargeTarget(target: string, tabId?: number): Promise<stri
 	}
 	// treat `target` as RegExp and 
 	else {
-		matchAll = await tabConnection.matchAllText(target);
+		matches = await tabConnection.matchAllText(tab.findLargestTarget) || [];
 	}
 
-	return matchAll
-		? matchAll.filter((x) => x.length > 0)
+	return matches
+		? matches.filter((x) => x.length > 0)
 		: [];
 }
 
@@ -120,71 +124,59 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		if (opts.notifications) {
 			browser.notifications.create({ ...opts.notifications, message });
 		}
-		else {
-			throw new Error("opts.notifications are required");
-		}
 	}
 
-	async function saveTabs(tabs: (browser.tabs.Tab & Addon.ImageSaverRule)[]) {
+	async function grabImagesOnPage(tab: CustomTab) {
+		const ret: string[][] = [];
+		if (tab.findLargest && tab.findLargestTarget) {
+			ret.push(...await evaluateLargeTarget(tab));
+		}
+		else {
+			ret.push([tab.url!]);
+		}
+		return ret;
+	}
+
+	async function saveImagesFromTabs(tabs: CustomTab[]) {
+
+		if (tabs.length === 0) return;
 
 		let completed = 0;
 
 		let tabCount = tabs.length;
 
-		if (tabCount === 0) return;
-
 		const prevBrowserBadgeText = await browser.browserAction.getBadgeText({});
 
 		for (const tab of tabs) {
-			const {
-				disabled,
-				url,
-				target,
-				folder: folderLocation,
-				findLargest,
-				findLargestTarget
-			} = tab;
-
 			await browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
 
-			if (!url || disabled) {
+			if (
+				tab.url === undefined
+				|| tab.disabled
+				|| PARSED_IN_CURRENT_SESSION.includes(tab.url)
+			) {
 				continue;
 			}
 
-			if (PARSED_IN_CURRENT_SESSION.includes(url)) {
-				continue;
-			}
-
-			const matchedTargetUrl = url.match(new RegExp(target));
+			const matchedTargetUrl = tab.url.match(new RegExp(tab.target));
 			if (matchedTargetUrl === null) {
-				console.log("E: ", url, target);
+				console.log("E:", tab);
 				break;
 			}
 
-			const currentTabDownloadURLs: string[][] = [];
+			const foundImages = await grabImagesOnPage(tab);
+			for (const matched of foundImages) {
+				const downloadURL = matched[0];
 
-			if (findLargest && findLargestTarget) {
-				const matchAll = await evaluateLargeTarget(findLargestTarget, tab.id); // => RegExpMatchArray[]
-				if (matchAll.length > 0) {
-					currentTabDownloadURLs.push(...matchAll);
-				}
-			}
-			else {
-				currentTabDownloadURLs.push([url]);
-			}
-
-			for (const downloadUrlMatch of currentTabDownloadURLs) {
-
-				const downloadURL = downloadUrlMatch[0];
 				if (PARSED_IN_CURRENT_SESSION.includes(downloadURL)) {
 					continue;
 				}
 
 				const correctedPath = [
 					replaceSavePathPlaceholders(/\$([0-9]+);/g, matchedTargetUrl),
-					replaceSavePathPlaceholders(/\$1_([0-9]+);/g, downloadUrlMatch.length > 1 ? downloadUrlMatch : []),
+					replaceSavePathPlaceholders(/\$1_([0-9]+);/g, matched.length > 1 ? matched : []),
 					normalizePath
-				].reduce((a, curr) => curr(a), folderLocation);
+				].reduce((a, curr) => curr(a), tab.folder);
 
 				const relativeFilepath = [
 					...correctedPath.split("/"),
@@ -203,7 +195,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					conflictAction: "overwrite",
 					headers: [{
 						name: "Referer",
-						value: url
+						value: tab.url
 					}]
 				}, true);
 
@@ -215,6 +207,9 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					console.log("saved image:", tab.url, tab.url === downloadURL ? null : downloadURL);
 
 					completed++;
+				}
+				else {
+					console.error("something went wrong", downloadId, downloadURL)
 				}
 
 				PARSED_IN_CURRENT_SESSION.push(downloadURL);
@@ -232,10 +227,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		}
 	}
 
-	/**
-	 * Filter tabs in the current window that match the regex.
-	 */
-	function processTabs(tabs: browser.tabs.Tab[]): (browser.tabs.Tab & Addon.ImageSaverRule)[] {
+	/** Filter tabs in the current window that match the regex. */
+	function processTabs(tabs: browser.tabs.Tab[]): CustomTab[] {
 		const filtered = [];
 
 		for (const tab of tabs) {
@@ -244,9 +237,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 			for (const rule of settings.imageSaverRules) {
 				if (!rule.target || !rule.folder) break;
 
-				const regex = new RegExp(rule.target);
-
-				if (regex.test(tab.url)) {
+				if (new RegExp(rule.target).test(tab.url)) {
 					filtered.push({ ...tab, ...rule });
 					break;
 				}
@@ -260,8 +251,9 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		const tabs = processTabs(await getActiveTabsInWin());
 
 		if (tabs.length > 0) {
-			await saveTabs(tabs);
-			getActiveTabsInWin(tabs[0].windowId, true).then(closeWindowIfEmpty);
+			await saveImagesFromTabs(tabs);
+			getActiveTabsInWin(tabs[0].windowId, true);
+			closeWindowIfEmpty(tabs[0].windowId);
 		}
 		else {
 			createNotice("Nothing to save.");

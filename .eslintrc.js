@@ -80,7 +80,7 @@ module.exports = {
 			}
 		],
 		"no-extra-bind": "warn",
-		"no-unused-vars": 2,
+		"no-unused-vars": 1,
 		"@typescript-eslint/no-unused-vars": [
 			"warn",
 			{
@@ -89,7 +89,7 @@ module.exports = {
 			}
 		],
 		"@typescript-eslint/explicit-module-boundary-types": 0,
-		"@typescript-eslint/no-non-null-assertion": "warn",
+		"@typescript-eslint/no-non-null-assertion": 0,
 		"@typescript-eslint/no-this-alias": "warn",
 		"@typescript-eslint/no-empty-function": 0,
 		"@typescript-eslint/no-var-requires": 0,
@@ -114,13 +114,6 @@ module.exports = {
 				"functions": false,
 				"classes": true,
 				"variables": false
-			}
-		],
-		"indent": [
-			"error",
-			"tab",
-			{
-				"SwitchCase": 1
 			}
 		],
 		"linebreak-style": [

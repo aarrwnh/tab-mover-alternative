@@ -2,17 +2,17 @@ import type { MessageQuery, AllowedAttributes } from "../background/types";
 
 function useQuerySelector(
 	selector: string,
-	attribute?: AllowedAttributes
+	attr?: AllowedAttributes
 ): string {
 	const el = document.querySelector<HTMLElement>(selector);
 
-	if (el && !attribute) {
+	if (el && !attr) {
 		switch (el.nodeName) {
-			case "META": attribute = "content"; break;
+			case "META": attr = "content"; break;
 		}
 
-		if (attribute) {
-			return el.getAttribute(attribute) || "";
+		if (attr) {
+			return el.getAttribute(attr) || "";
 		}
 	}
 
@@ -45,7 +45,7 @@ function findTextOnPage(regex: string): RegExpMatchArray[] {
 	return [];
 }
 
-function evaluateXPath<T extends Node>(aNode: HTMLElement | HTMLDocument, aExpr: string): T[] {
+function evaluateXPath<T extends Node>(aNode: HTMLElement | Document, aExpr: string): T[] {
 
 	if (!aExpr) throw new SyntaxError("expression can't be empty");
 
@@ -53,7 +53,7 @@ function evaluateXPath<T extends Node>(aNode: HTMLElement | HTMLDocument, aExpr:
 
 	const nsResolver = xpe.createNSResolver(
 		aNode.ownerDocument == null
-			? (aNode as any).documentElement
+			? aNode.documentElement
 			: aNode.ownerDocument.documentElement
 	);
 
@@ -70,7 +70,9 @@ function evaluateXPath<T extends Node>(aNode: HTMLElement | HTMLDocument, aExpr:
 	return found as T[];
 }
 
-function queryXPath(XPath: string, attr: AllowedAttributes): string[] {
+function queryXPath(XPath: string, attr?: AllowedAttributes): string[] {
+	if (!attr) return [];
+
 	const foundElement = evaluateXPath(document, XPath);
 
 	return foundElement.length > 0
@@ -84,9 +86,7 @@ browser.runtime.onConnect.addListener(function (port) {
 	port.onMessage.addListener(function (_) {
 		const msg = _ as MessageQuery;
 
-		if (!msg.context) {
-			return;
-		}
+		if (!msg.context) return;
 
 		const { target, attribute } = msg.context;
 
@@ -97,7 +97,7 @@ browser.runtime.onConnect.addListener(function (port) {
 			}
 
 			case "XPath": {
-				port.postMessage({ result: queryXPath(target, attribute as any) });
+				port.postMessage({ result: queryXPath(target, attribute) });
 				break;
 			}
 
