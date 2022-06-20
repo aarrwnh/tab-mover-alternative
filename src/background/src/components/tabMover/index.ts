@@ -1,4 +1,5 @@
-import { createMenuItem } from "../browser/Menu";
+import { createMenuItem } from "../../browser/Menu";
+import { visitedTabsHistory } from "./visitedTabHistory";
 
 const { WINDOW_ID_CURRENT, WINDOW_ID_NONE } = browser.windows;
 const BADGE_COLOR_DEFAULT = "royalblue";
@@ -397,20 +398,8 @@ export default async function main(settings: Addon.Settings) {
 		}
 	}
 
-	function switchToPrevTabInWindow(info: browser.tabs._OnActivatedActiveInfo) {
-		browser.tabs.query({ windowId: info.windowId })
-			.then(function (tabs) {
-				const prevActiveTab = tabs.filter((tab) => tab.id === info.previousTabId);
-				if (prevActiveTab.length === 1) {
-					browser.tabs.update(prevActiveTab[0].id ?? -1, { active: true });
-				}
-			});
-	}
-
 	browser.menus.onShown.addListener(onMenuShown);
 	browser.menus.onHidden.addListener(onMenuHidden);
-
-	const recentFocusedTabs: Map<number, browser.tabs._OnActivatedActiveInfo> = new Map();
 
 	const recentFocusedWindows = (new class Wrapper<T extends number> {
 		private aMap = new Map<T, boolean>();
@@ -453,9 +442,11 @@ export default async function main(settings: Addon.Settings) {
 	});
 
 	browser.tabs.onActivated.addListener(function (info) {
-		// prevent update on tab removal
-		if (info.previousTabId === undefined) return;
-		recentFocusedTabs.set(info.windowId, info);
+		visitedTabsHistory.add(info.tabId, info.windowId);
+	});
+
+	browser.tabs.onRemoved.addListener(function (removedTabId) {
+		visitedTabsHistory.remove(removedTabId);
 	});
 
 	browser.commands.onCommand.addListener(function (command) {
@@ -463,15 +454,7 @@ export default async function main(settings: Addon.Settings) {
 			openLastRecentTab();
 		}
 		else if (command === "last-active-tab") {
-			getCurrentWindow().then(function (currentWindow) {
-				const id = currentWindow.id;
-				if (id && recentFocusedTabs.has(id)) {
-					const activeInfo = recentFocusedTabs.get(id);
-					if (activeInfo) {
-						switchToPrevTabInWindow(activeInfo);
-					}
-				}
-			});
+			visitedTabsHistory.activateLatest();
 		}
 		else if (command === "sort-selected-tabs") {
 			sortSelectedTabs();
