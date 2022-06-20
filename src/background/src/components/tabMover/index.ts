@@ -1,4 +1,5 @@
 import { createMenuItem } from "../../browser/Menu";
+import { recentFocusedWindows } from "./recentFocusedWindows";
 import { visitedTabsHistory } from "./visitedTabHistory";
 
 const { WINDOW_ID_CURRENT, WINDOW_ID_NONE } = browser.windows;
@@ -356,10 +357,6 @@ export default async function main(settings: Addon.Settings) {
 			});
 	}
 
-	function getCurrentWindow(): Promise<browser.windows.Window> {
-		return browser.windows.getCurrent();
-	}
-
 	function getCurrentTab(): Promise<browser.tabs.Tab[]> {
 		return browser.tabs.query({ active: true, windowId: WINDOW_ID_CURRENT });
 	}
@@ -400,46 +397,6 @@ export default async function main(settings: Addon.Settings) {
 
 	browser.menus.onShown.addListener(onMenuShown);
 	browser.menus.onHidden.addListener(onMenuHidden);
-
-	const recentFocusedWindows = (new class Wrapper<T extends number> {
-		private aMap = new Map<T, boolean>();
-		private aSet = new Set<T>();
-		get(id: T): boolean | void {
-			return this.aMap.get(id);
-		}
-		set(id: T, isIncognito = false): void {
-			this.aSet.add(id);
-			this.aMap.set(id, isIncognito);
-		}
-		delete(id: T): void {
-			this.aSet.delete(id);
-			this.aMap.delete(id);
-		}
-		sizeof(isIncognito = false): number {
-			return this.filter(isIncognito).length;
-		}
-		get size(): number {
-			return this.aMap.size;
-		}
-		private filter(isIncognito: boolean): T[] {
-			const a: T[] = [];
-			for (const [id, incognito] of this.aMap.entries()) {
-				if (incognito === isIncognito) {
-					a.push(id);
-				}
-			}
-			return [...this.aSet].filter((id) => a.includes(id));
-		}
-		first(isIncognito = false): T {
-			return this.filter(isIncognito)[0];
-		}
-		last(isIncognito = false): T {
-			return this.filter(isIncognito).reverse()[0];
-		}
-		recent(isIncognito = false): T {
-			return this.filter(isIncognito).reverse()[1];
-		}
-	});
 
 	browser.tabs.onActivated.addListener(function (info) {
 		visitedTabsHistory.add(info.tabId, info.windowId);
