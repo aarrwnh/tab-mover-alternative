@@ -1,11 +1,15 @@
 export const visitedTabsHistory = (new class _ {
 	private _history = new Map<number, number[]>();
 
-	public async activateLatest() {
+	public async activateRecent(position = 1) {
 		const currentWindow = await browser.windows.getCurrent();
 		const sequence = this._history.get(currentWindow.id || -1) || [];
+
+		if (sequence.length < position) {
+			return;
+		}
 		if (sequence) {
-			const prevTabId = sequence[sequence.length - 2];
+			const prevTabId = sequence[sequence.length - position - 1];
 			browser.tabs.update(prevTabId, { active: true });
 		}
 	}

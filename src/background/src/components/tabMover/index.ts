@@ -402,6 +402,15 @@ export default async function main(settings: Addon.Settings) {
 		visitedTabsHistory.add(info.tabId, info.windowId);
 	});
 
+	browser.tabs.onDetached.addListener(function (tabId, detachInfo) {
+		// update history on tab move between windows
+		browser.tabs.get(tabId)
+			.then(function (tab) {
+				visitedTabsHistory.remove(tabId, detachInfo.oldWindowId);
+				visitedTabsHistory.add(tabId, tab.windowId);
+			});
+	});
+
 	browser.tabs.onRemoved.addListener(function (removedTabId) {
 		visitedTabsHistory.remove(removedTabId);
 	});
@@ -411,7 +420,7 @@ export default async function main(settings: Addon.Settings) {
 			openLastRecentTab();
 		}
 		else if (command === "last-active-tab") {
-			visitedTabsHistory.activateLatest();
+			visitedTabsHistory.activateRecent(1);
 		}
 		else if (command === "sort-selected-tabs") {
 			sortSelectedTabs();
