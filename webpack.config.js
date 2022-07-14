@@ -121,7 +121,7 @@ module.exports = (_env, argv) => {
 					"echo \x1B[2J\x1B[3J\x1B[H" // clear terminal
 				],
 				onBuildExit: [
-					"echo.",
+					"echo ''",
 				]
 			}),
 			new webpack.optimize.LimitChunkCountPlugin({
