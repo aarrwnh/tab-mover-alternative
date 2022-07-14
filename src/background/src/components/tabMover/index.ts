@@ -407,7 +407,7 @@ export default async function main(settings: Addon.Settings) {
 		browser.tabs.get(tabId)
 			.then(function (tab) {
 				visitedTabsHistory.remove(tabId, detachInfo.oldWindowId);
-				visitedTabsHistory.add(tabId, tab.windowId);
+				visitedTabsHistory.add(tabId, tab.windowId, true);
 			});
 	});
 

@@ -29,7 +29,11 @@ export const visitedTabsHistory = (new class _ {
 		}
 	}
 
-	public async add(tabId: number, windowId?: number) {
+	/**
+	 * @param unshift When moving tabs between windows do not add moved tab id
+	 *        to end of array and disrupt visited history for moved to window.
+	 */
+	public async add(tabId: number, windowId?: number, unshift = false) {
 		if (!windowId) {
 			const currentWindow = await browser.windows.getCurrent();
 			windowId = currentWindow.id || -1;
@@ -42,7 +46,12 @@ export const visitedTabsHistory = (new class _ {
 			if (idx !== -1) {
 				sequence.splice(idx, 1);
 			}
-			sequence.push(tabId);
+			if (unshift) {
+				sequence.unshift(tabId);
+			}
+			else {
+				sequence.push(tabId);
+			}
 		}
 		else {
 			sequence = [tabId];
