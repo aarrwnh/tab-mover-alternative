@@ -165,6 +165,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 			}
 
 			const foundImages = await grabImagesOnPage(tab);
+			let tabCanClose = true;
 			for (const matched of foundImages) {
 				const downloadURL = matched[0];
 
@@ -188,7 +189,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 				console.debug(downloadURL, relativeFilepath);
 
-				const downloadId = await downloads.start({
+				await downloads.start({
 					url: downloadURL,
 					filename: relativeFilepath,
 					// TODO: change to "prompt" when implemented in FF?
@@ -197,22 +198,19 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 						name: "Referer",
 						value: tab.url
 					}]
-				}, true);
+				}, true)
+					.then(function () {
+						completed++;
+						PARSED_IN_CURRENT_SESSION.push(downloadURL);
+					})
+					.catch(function () {
+						tabCanClose = false;
+						console.error("download error");
+					});
+			}
 
-				if (downloadId !== -1) {
-					if (settings.imageSaverCloseOnComplete && tab.id) {
-						browser.tabs.remove(tab.id);
-					}
-
-					console.log("saved image:", tab.url, tab.url === downloadURL ? null : downloadURL);
-
-					completed++;
-				}
-				else {
-					console.error("something went wrong", downloadId, downloadURL)
-				}
-
-				PARSED_IN_CURRENT_SESSION.push(downloadURL);
+			if (tabCanClose && settings.imageSaverCloseOnComplete && tab.id) {
+				browser.tabs.remove(tab.id);
 			}
 		}
 
@@ -247,7 +245,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		return filtered;
 	}
 
-	async function saveImages(): Promise<void> {
+	async function initImageSaveProcess(): Promise<void> {
 		const tabs = processTabs(await getActiveTabsInWin());
 
 		if (tabs.length > 0) {
@@ -263,7 +261,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 	browser.commands.onCommand.addListener(function (command) {
 		switch (command) {
 			case "save-images": {
-				saveImages();
+				initImageSaveProcess();
 				break;
 			}
 		}
@@ -275,7 +273,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		enabled: true,
 		contexts: ["browser_action"],
 		onclick() {
-			saveImages();
+			initImageSaveProcess();
 		},
 		icons: { 32: "icons/image.svg" }
 	});

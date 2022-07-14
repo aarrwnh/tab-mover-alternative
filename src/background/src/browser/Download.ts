@@ -7,7 +7,7 @@ export class Downloads extends Notifications {
 		opts: browser.downloads._DownloadOptions,
 		removeAfterComplete = false,
 		_retrying = false
-	): Promise<number> {
+	): Promise<void> {
 		if (opts.filename && !_retrying) {
 			opts.filename = opts.filename.split("/").map((x) => {
 				return replaceIllegalCharacters(convertFullWidthToHalf(x));
@@ -18,15 +18,13 @@ export class Downloads extends Notifications {
 			}
 		}
 
-		let downloadId = -1;
 		try {
-			downloadId = await browser.downloads.download(opts);
+			await browser.downloads.download(opts);
 		}
 		catch (err) {
 			if (err instanceof Error) {
-				const invalidFilename = err.message.includes("illegal characters");
-				console.error(err.message + ": " + opts.url);
-				if (invalidFilename) {
+				const isInvalidFilename = err.message.includes("illegal characters");
+				if (isInvalidFilename) {
 					if (opts.filename?.match(/[^\x00-\x7F]{1}\//)) {
 						// try to add underline first
 						opts.filename = opts.filename.replace(/([^\x00-\x7F]{1})\//g, "$1_/");
@@ -46,34 +44,31 @@ export class Downloads extends Notifications {
 						return this.start(opts, removeAfterComplete, true);
 					}
 				}
-				return downloadId;
+				throw new Error(err.message + ": " + opts.url);
 			}
 		}
-		return this._onDownloadStateChange(downloadId, removeAfterComplete);
+		return this._onDownloadStateChange(removeAfterComplete);
 	}
 
-	private _onDownloadStateChange(downloadID: number, removeAfterComplete = false): Promise<number> {
-		return new Promise(function (resolve) {
-			function erase(id: number): void {
-				browser.downloads.erase({ id });
+	private _onDownloadStateChange(removeAfterComplete = false): Promise<void> {
+		return new Promise<void>(function (resolve, reject) {
+			function erase(id: number, erase: boolean): void {
+				if (erase) {
+					browser.downloads.erase({ id });
+				}
 				browser.downloads.onChanged.removeListener(onDownloadEnd);
 			}
 
 			function onDownloadEnd(delta: browser.downloads._OnChangedDownloadDelta): void {
-				if (delta.state?.current === "interrupted") {
-					console.error(new Error(delta.error?.current));
-					resolve(-1);
-					erase(delta.id);
-					return;
-				}
-				else {
-					resolve(downloadID);
-				}
-
-				if (removeAfterComplete
-					&& delta.id === downloadID
-					&& delta.state?.current === "complete") {
-					erase(delta.id);
+				if (delta.state) {
+					if (delta.state.current !== "in_progress") {
+						if (delta.state.current === "interrupted") {
+							removeAfterComplete = false;
+							reject("interrupted");
+						}
+						erase(delta.id, removeAfterComplete);
+						resolve();
+					}
 				}
 			}
 
