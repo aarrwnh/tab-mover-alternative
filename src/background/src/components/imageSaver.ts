@@ -5,7 +5,8 @@ import { formatDateToReadableFormat } from "../utils/normalizeString";
 import { pluralize } from "../utils/pluralize";
 
 function getFilename(url: string): string {
-	return new URL(url).pathname.split("/").pop() ?? "";
+	const last = new URL(url).pathname.split("/").pop() ?? "";
+	return last.includes("%") ? decodeURIComponent(last) : last;
 }
 
 type CustomTab = browser.tabs.Tab & Addon.ImageSaverRule;
@@ -103,7 +104,7 @@ function normalizeFilename(filename: string): string {
 
 export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): void {
 
-	const downloads = new Downloads();
+	const downloads = new Downloads({ eraseOnComplete: opts.closeTabsOnComplete });
 
 	const PARSED_IN_CURRENT_SESSION: string[] = [];
 
@@ -148,7 +149,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		const prevBrowserBadgeText = await browser.browserAction.getBadgeText({});
 
 		for (const tab of tabs) {
-			await browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
+			browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
 
 			if (
 				tab.url === undefined
@@ -198,7 +199,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 						name: "Referer",
 						value: tab.url
 					}]
-				}, true)
+				})
 					.then(function () {
 						completed++;
 						PARSED_IN_CURRENT_SESSION.push(downloadURL);
@@ -214,7 +215,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 			}
 		}
 
-		await browser.browserAction.setBadgeText({ text: prevBrowserBadgeText });
+		browser.browserAction.setBadgeText({ text: prevBrowserBadgeText });
 
 		const d = `Saved ${ completed } image${ pluralize(completed) }`;
 		if (completed === 0 || completed === tabs.length) {

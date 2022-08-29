@@ -21,7 +21,7 @@ export default function main(
 		throw new Error("opts.notifications are required");
 	}
 
-	const downloads = new Downloads();
+	const downloads = new Downloads({ eraseOnComplete: opts.closeTabsOnComplete });
 
 	class Bookmarks {
 		private _createURLFileBody({ url, origin, description }: InternetShortcutFields) {
@@ -107,7 +107,7 @@ export default function main(
 					conflictAction: "overwrite",
 					url: urlFileBodyObjectURL,
 					filename
-				}, true)
+				})
 					.then(function () {
 						if (tab.id) {
 							processedTabs.push(tab.id);

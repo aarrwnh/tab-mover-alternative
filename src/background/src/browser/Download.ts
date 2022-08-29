@@ -3,11 +3,19 @@ import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
 import { Notifications } from "./Notifications";
 
 export class Downloads extends Notifications {
-	async start(
-		opts: browser.downloads._DownloadOptions,
-		removeAfterComplete = false,
-		_retrying = false
-	): Promise<void> {
+	private _eraseAfterComplete?: boolean;
+
+	constructor(opts?: {
+		eraseOnComplete?: boolean;
+	}) {
+		super();
+
+		if (opts) {
+			this._eraseAfterComplete = opts.eraseOnComplete || true;
+		}
+	}
+
+	async start(opts: browser.downloads._DownloadOptions, _retrying = false): Promise<void> {
 		if (opts.filename && !_retrying) {
 			opts.filename = opts.filename.split("/").map((x) => {
 				return replaceIllegalCharacters(convertFullWidthToHalf(x));
@@ -18,17 +26,23 @@ export class Downloads extends Notifications {
 			}
 		}
 
+		// add some cooldown between each download because it gets stuck
+		// at weird point
+		await new Promise((r) => setTimeout(r, 50)); // 30 -- too low
+
+		let downloadID = -1;
 		try {
-			await browser.downloads.download(opts);
+			downloadID = await browser.downloads.download(opts);
 		}
 		catch (err) {
+			console.error(err);
 			if (err instanceof Error) {
 				const isInvalidFilename = err.message.includes("illegal characters");
 				if (isInvalidFilename) {
 					if (opts.filename?.match(/[^\x00-\x7F]{1}\//)) {
 						// try to add underline first
 						opts.filename = opts.filename.replace(/([^\x00-\x7F]{1})\//g, "$1_/");
-						return this.start(opts, removeAfterComplete, true);
+						return this.start(opts, true);
 					}
 					else {
 						// hack/bug?: even having unicode char before slash will error when saving,
@@ -41,19 +55,28 @@ export class Downloads extends Notifications {
 								return i !== arr.length - 1 ? encodeURIComponent(x) : x;
 							})
 							.join("/");
-						return this.start(opts, removeAfterComplete, true);
+						return this.start(opts, true);
 					}
 				}
 				throw new Error(err.message + ": " + opts.url);
 			}
 		}
-		return this._onDownloadStateChange(removeAfterComplete);
+
+		const downloadItem = await browser.downloads.search({ id: downloadID });
+		if (downloadItem.length > 0 && downloadItem[0].state === "complete") {
+			browser.downloads.erase({ id: downloadID });
+			return Promise.resolve();
+		}
+
+		return await this._onDownloadStateChange();
 	}
 
-	private _onDownloadStateChange(removeAfterComplete = false): Promise<void> {
+	private async _onDownloadStateChange(): Promise<void> {
+		let removeAfterComplete = this._eraseAfterComplete;
+
 		return new Promise<void>(function (resolve, reject) {
-			function erase(id: number, erase: boolean): void {
-				if (erase) {
+			function erase(id: number): void {
+				if (removeAfterComplete) {
 					browser.downloads.erase({ id });
 				}
 				browser.downloads.onChanged.removeListener(onDownloadEnd);
@@ -61,12 +84,12 @@ export class Downloads extends Notifications {
 
 			function onDownloadEnd(delta: browser.downloads._OnChangedDownloadDelta): void {
 				if (delta.state) {
-					if (delta.state.current !== "in_progress") {
-						if (delta.state.current === "interrupted") {
-							removeAfterComplete = false;
-							reject("interrupted");
-						}
-						erase(delta.id, removeAfterComplete);
+					if (delta.state.current === "interrupted") {
+						removeAfterComplete = false;
+						reject(delta.error);
+					}
+					if (delta.state.current === "complete") {
+						erase(delta.id);
 						resolve();
 					}
 				}
