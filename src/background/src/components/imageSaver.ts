@@ -9,7 +9,10 @@ function getFilename(url: string): string {
 	return last.includes("%") ? decodeURIComponent(last) : last;
 }
 
-type CustomTab = browser.tabs.Tab & Addon.ImageSaverRule;
+interface TabRules {
+	tab: browser.tabs.Tab;
+	rules: Addon.ImageSaverRule;
+}
 
 function replaceSavePathPlaceholders(regex: RegExp, placeholders: string[]) {
 	return function (folder: string) {
@@ -62,17 +65,17 @@ function validateRegExpTag(target: string): RegExp | void {
 	}
 }
 
-async function evaluateLargeTarget(tab: CustomTab): Promise<string[][]> {
+async function evaluateLargeTarget(e: TabRules): Promise<string[][]> {
 	let matches: string[][] = [];
 
-	const tabConnection = new TabConnection(tab.id);
+	const tabConnection = new TabConnection(e.tab.id);
 
-	if (tab.findLargestTarget.includes("</XPath>")) {
-		const regExpFromTag = tab.findLargestTarget.includes("</RegExp>")
-			? validateRegExpTag(tab.findLargestTarget)
+	if (e.rules.findLargestTarget.includes("</XPath>")) {
+		const regExpFromTag = e.rules.findLargestTarget.includes("</RegExp>")
+			? validateRegExpTag(e.rules.findLargestTarget)
 			: void 0;
 
-		const XPathFromTag = validateXPathTag(tab.findLargestTarget);
+		const XPathFromTag = validateXPathTag(e.rules.findLargestTarget);
 
 		if (XPathFromTag) {
 			matches = (await tabConnection.queryXPath(XPathFromTag.path, XPathFromTag.attr) || [])
@@ -85,9 +88,9 @@ async function evaluateLargeTarget(tab: CustomTab): Promise<string[][]> {
 				});
 		}
 	}
-	// treat `target` as RegExp and 
 	else {
-		matches = await tabConnection.matchAllText(tab.findLargestTarget) || [];
+		// treat `target` as RegExp
+		matches = await tabConnection.matchAllText(e.rules.findLargestTarget) || [];
 	}
 
 	return matches
@@ -127,18 +130,18 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		}
 	}
 
-	async function grabImagesOnPage(tab: CustomTab) {
+	async function grabImagesOnPage(e: TabRules) {
 		const ret: string[][] = [];
-		if (tab.findLargest && tab.findLargestTarget) {
-			ret.push(...await evaluateLargeTarget(tab));
+		if (e.rules.findLargest && e.rules.findLargestTarget) {
+			ret.push(...await evaluateLargeTarget(e));
 		}
 		else {
-			ret.push([tab.url!]);
+			ret.push([e.tab.url!]);
 		}
 		return ret;
 	}
 
-	async function saveImagesFromTabs(tabs: CustomTab[]) {
+	async function saveImagesFromTabs(tabs: TabRules[]) {
 
 		if (tabs.length === 0) return;
 
@@ -148,24 +151,24 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 		const prevBrowserBadgeText = await browser.browserAction.getBadgeText({});
 
-		for (const tab of tabs) {
+		for (const data of tabs) {
 			browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
 
 			if (
-				tab.url === undefined
-				|| tab.disabled
-				|| PARSED_IN_CURRENT_SESSION.includes(tab.url)
+				data.tab.url === undefined
+				|| data.rules.disabled
+				|| PARSED_IN_CURRENT_SESSION.includes(data.tab.url)
 			) {
 				continue;
 			}
 
-			const matchedTargetUrl = tab.url.match(new RegExp(tab.target));
+			const matchedTargetUrl = data.tab.url.match(new RegExp(data.rules.target));
 			if (matchedTargetUrl === null) {
-				console.log("E:", tab);
+				console.log("E:", data);
 				break;
 			}
 
-			const foundImages = await grabImagesOnPage(tab);
+			const foundImages = await grabImagesOnPage(data);
 			let tabCanClose = true;
 			for (const matched of foundImages) {
 				const downloadURL = matched[0];
@@ -178,7 +181,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					replaceSavePathPlaceholders(/\$([0-9]+);/g, matchedTargetUrl),
 					replaceSavePathPlaceholders(/\$1_([0-9]+);/g, matched.length > 1 ? matched : []),
 					normalizePath
-				].reduce((a, curr) => curr(a), tab.folder);
+				].reduce((a, curr) => curr(a), data.rules.folder);
 
 				const relativeFilepath = [
 					...correctedPath.split("/"),
@@ -197,7 +200,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					conflictAction: "overwrite",
 					headers: [{
 						name: "Referer",
-						value: tab.url
+						value: data.tab.url
 					}]
 				})
 					.then(function () {
@@ -210,8 +213,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					});
 			}
 
-			if (tabCanClose && settings.imageSaverCloseOnComplete && tab.id) {
-				browser.tabs.remove(tab.id);
+			if (tabCanClose && settings.imageSaverCloseOnComplete && data.tab.id) {
+				browser.tabs.remove(data.tab.id);
 			}
 		}
 
@@ -227,17 +230,17 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 	}
 
 	/** Filter tabs in the current window that match the regex. */
-	function processTabs(tabs: browser.tabs.Tab[]): CustomTab[] {
-		const filtered = [];
+	function processTabs(tabs: browser.tabs.Tab[]): TabRules[] {
+		const filtered: TabRules[] = [];
 
 		for (const tab of tabs) {
 			if (!tab.url) continue;
 
-			for (const rule of settings.imageSaverRules) {
-				if (!rule.target || !rule.folder) break;
+			for (const rules of settings.imageSaverRules) {
+				if (!rules.target || !rules.folder) break;
 
-				if (new RegExp(rule.target).test(tab.url)) {
-					filtered.push({ ...tab, ...rule });
+				if (new RegExp(rules.target).test(tab.url)) {
+					filtered.push({ tab, rules });
 					break;
 				}
 			}
@@ -251,8 +254,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 		if (tabs.length > 0) {
 			await saveImagesFromTabs(tabs);
-			getActiveTabsInWin(tabs[0].windowId, true);
-			closeWindowIfEmpty(tabs[0].windowId);
+			getActiveTabsInWin(tabs[0].tab.windowId, true);
+			closeWindowIfEmpty(tabs[0].tab.windowId);
 		}
 		else {
 			createNotice("Nothing to save.");
