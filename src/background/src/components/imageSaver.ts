@@ -71,17 +71,17 @@ async function evaluateLargeTarget(e: TabRules): Promise<string[][]> {
 	const tabConnection = new TabConnection(e.tab.id);
 
 	if (e.rules.findLargestTarget.includes("</XPath>")) {
-		const regExpFromTag = e.rules.findLargestTarget.includes("</RegExp>")
+		const regexFromTag = e.rules.findLargestTarget.includes("</RegExp>")
 			? validateRegExpTag(e.rules.findLargestTarget)
 			: void 0;
 
-		const XPathFromTag = validateXPathTag(e.rules.findLargestTarget);
+		const xPathFromTag = validateXPathTag(e.rules.findLargestTarget);
 
-		if (XPathFromTag) {
-			matches = (await tabConnection.queryXPath(XPathFromTag.path, XPathFromTag.attr) || [])
+		if (xPathFromTag) {
+			matches = (await tabConnection.queryXPath(xPathFromTag.path, xPathFromTag.attr) || [])
 				.map((x) => {
-					if (regExpFromTag) {
-						const match = x.match(regExpFromTag);
+					if (regexFromTag) {
+						const match = x.match(regexFromTag);
 						return match === null ? [] : [x, ...match.slice(1)];
 					}
 					return [x];
@@ -93,7 +93,7 @@ async function evaluateLargeTarget(e: TabRules): Promise<string[][]> {
 		matches = await tabConnection.matchAllText(e.rules.findLargestTarget) || [];
 	}
 
-	return matches
+	return matches.length > 0
 		? matches.filter((x) => x.length > 0)
 		: [];
 }
@@ -162,6 +162,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 				continue;
 			}
 
+			console.log(`parsing#${ data.tab.id } ${ data.tab.url }`);
+
 			const matchedTargetUrl = data.tab.url.match(new RegExp(data.rules.target));
 			if (matchedTargetUrl === null) {
 				console.log("E:", data);
@@ -169,7 +171,10 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 			}
 
 			const foundImages = await grabImagesOnPage(data);
+			// -> [ ["https://i.pximg.net/..._p0.jpg#user=username", "username"], ...]
+
 			let tabCanClose = true;
+
 			for (const matched of foundImages) {
 				const downloadURL = matched[0];
 
@@ -191,7 +196,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					.replace(/\/{2,}/g, "/")
 					.replace(/[ﾟ]/g, "");
 
-				console.debug(downloadURL, relativeFilepath);
+				console.log("downloading:", downloadURL, relativeFilepath);
 
 				await downloads.start({
 					url: downloadURL,
@@ -207,9 +212,9 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 						completed++;
 						PARSED_IN_CURRENT_SESSION.push(downloadURL);
 					})
-					.catch(function () {
+					.catch(function (err: Error) {
 						tabCanClose = false;
-						console.error("download error");
+						console.error(err);
 					});
 			}
 

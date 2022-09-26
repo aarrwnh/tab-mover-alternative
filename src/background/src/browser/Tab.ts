@@ -15,22 +15,21 @@ export async function closeWindowIfEmpty(windowId = WINDOW_ID_CURRENT): Promise<
 	}
 }
 
-/** Get opened tabs prioritizing highlighted ones. */
+/** Get opened tabs prioritizing highlighted ones if there are any. */
 export async function getActiveTabsInWin(
 	windowId = WINDOW_ID_CURRENT,
-	allTabs = false
+	discarded = false
 ): Promise<browser.tabs.Tab[]> {
 	const tabs = await browser.tabs.query({
 		hidden: false,
 		windowId,
-		discarded: allTabs ? true : false
+		discarded
 	});
-
-	const filterNotHighlighted = tabs.filter((tab) => tab.highlighted);
-
-	return filterNotHighlighted.length > 1
-		? filterNotHighlighted
-		: tabs;
+	const highlighted = tabs.filter((tab) => tab.highlighted);
+	if (highlighted.length > 1) {
+		return highlighted;
+	}
+	return tabs;
 }
 
 // TODO: finish rewrite...
