@@ -1,7 +1,7 @@
 {
 	"name": "tab-mover-alternative",
 	"description": "Fork of 'Tab Mover' addon for personal use only.",
-	"version": "1.1.0",
+	"version": "1.1.2",
 	"license": "MPL-2.0",
 	"keywords": [
 		"firefox",
