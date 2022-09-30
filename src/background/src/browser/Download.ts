@@ -16,6 +16,7 @@ function encodeFilename(opts: browser.downloads._DownloadOptions) {
 }
 
 function tryUnderlineFilename(opts: browser.downloads._DownloadOptions) {
+	// try to put underline as last character for folder name
 	opts.filename = opts.filename!.replace(/([^\x00-\x7F]{1})\//g, "$1_/");
 }
 
@@ -76,9 +77,11 @@ export class Downloads extends Notifications {
 						if (isInvalidFilename) {
 							if (opts.filename?.match(/[^\x00-\x7F]{1}\//)) {
 								tryUnderlineFilename(opts);
+								console.warn("trying underlined filename", opts.filename);
 							}
 							else {
 								encodeFilename(opts);
+								console.warn("encoding filename as last resort", opts.filename);
 							}
 
 							resolve(this.start(opts, true));

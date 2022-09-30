@@ -105,6 +105,13 @@ function normalizeFilename(filename: string): string {
 		.replace(/(\.\w+):(\w+)/, "\x20$2$1");
 }
 
+function groupEnd(msg?: string) {
+	if (msg) {
+		console.log(msg);
+	}
+	console.groupEnd();
+}
+
 export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): void {
 
 	const downloads = new Downloads({ eraseOnComplete: opts.closeTabsOnComplete });
@@ -154,15 +161,17 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		for (const data of tabs) {
 			browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
 
+			console.group(`tab#${data.tab.id}`);
+			console.log(`parsing ${ data.tab.url }`);
+
 			if (
 				data.tab.url === undefined
 				|| data.rules.disabled
 				|| PARSED_IN_CURRENT_SESSION.includes(data.tab.url)
 			) {
+				groupEnd("skipping already visited url");
 				continue;
 			}
-
-			console.log(`parsing#${ data.tab.id } ${ data.tab.url }`);
 
 			const matchedTargetUrl = data.tab.url.match(new RegExp(data.rules.target));
 			if (matchedTargetUrl === null) {
@@ -196,7 +205,7 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 					.replace(/\/{2,}/g, "/")
 					.replace(/[ﾟ]/g, "");
 
-				console.log("downloading:", downloadURL, relativeFilepath);
+				console.log(`save path: ${ relativeFilepath }`);
 
 				await downloads.start({
 					url: downloadURL,
@@ -217,6 +226,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 						console.error(err);
 					});
 			}
+
+			groupEnd();
 
 			if (tabCanClose && settings.imageSaverCloseOnComplete && data.tab.id) {
 				browser.tabs.remove(data.tab.id);
