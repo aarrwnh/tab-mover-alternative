@@ -64,7 +64,7 @@ export default function main(
 		}
 
 		async saveSelectedTabs(): Promise<number[]> {
-			const tabs = await Tabs.getCurrentTabHighlighted();
+			const tabs = await Tabs.getCurrentTabHighlighted({ pinned: false });
 			const processedTabs: number[] = [];
 
 			for (const tab of tabs) {

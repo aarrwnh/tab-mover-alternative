@@ -1,5 +1,7 @@
 const { WINDOW_ID_CURRENT } = browser.windows;
 
+type _QueryQueryInfo = browser.tabs._QueryQueryInfo;
+
 export async function closeWindowIfEmpty(windowId = WINDOW_ID_CURRENT): Promise<void> {
 	const windows = await browser.windows.getAll();
 	const tabs = await browser.tabs.query({ windowId });
@@ -38,17 +40,21 @@ export class Tabs {
 	// private _currentTabQuery: browser.tabs.Tab[] = [];
 
 	private static async _query(
-		queryInfo: browser.tabs._QueryQueryInfo,
+		queryInfo: _QueryQueryInfo,
 	): Promise<browser.tabs.Tab[]> {
 		return await browser.tabs.query(queryInfo);
 	}
 
-	static async getCurrentTab(): Promise<browser.tabs.Tab[]> {
-		return await this._query({ active: true, windowId: WINDOW_ID_CURRENT });
+	static async getCurrentTab(
+		extraQuery: _QueryQueryInfo = {} as _QueryQueryInfo
+	): Promise<browser.tabs.Tab[]> {
+		return await this._query({ ...extraQuery, active: true, windowId: WINDOW_ID_CURRENT });
 	}
 
-	static async getCurrentTabHighlighted(): Promise<browser.tabs.Tab[]> {
-		return await this._query({ highlighted: true, windowId: WINDOW_ID_CURRENT });
+	static async getCurrentTabHighlighted(
+		extraQuery: _QueryQueryInfo = {} as _QueryQueryInfo
+	): Promise<browser.tabs.Tab[]> {
+		return await this._query({ ...extraQuery, highlighted: true, windowId: WINDOW_ID_CURRENT });
 	}
 
 	/** Get opened tabs prioritizing highlighted ones. */

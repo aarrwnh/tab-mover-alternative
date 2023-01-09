@@ -28,7 +28,6 @@
 	}
 
 	div {
-		border-bottom: 1px solid rgb(75, 75, 75);
 		margin-bottom: 0.5rem;
 		margin-top: 0.5rem;
 	}
