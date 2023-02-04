@@ -74,7 +74,14 @@ export default async function main(settings: Addon.Settings) {
 			targetWindowId = newWindow.id || browser.windows.WINDOW_ID_NONE;
 		}
 
-		await browser.tabs.move(tabs, {
+		await browser.tabs.move(tabs.filter(async function (id) {
+			const tab = await browser.tabs.get(id);
+			if (!tab.pinned) {
+				Logger(`moving tab#${ tab.id } ${ tab.url }`);
+				return true;
+			}
+			return false;
+		}), {
 			windowId: targetWindowId,
 			index: -1
 		});
