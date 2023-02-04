@@ -184,10 +184,15 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 			let tabCanClose = true;
 
+			tabCount += foundImages.length;
+
 			for (const matched of foundImages) {
 				const downloadURL = matched[0];
 
+				browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
+
 				if (PARSED_IN_CURRENT_SESSION.includes(downloadURL)) {
+					tabCanClose = false;
 					continue;
 				}
 
@@ -210,7 +215,6 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 				await downloads.start({
 					url: downloadURL,
 					filename: relativeFilepath,
-					// TODO: change to "prompt" when implemented in FF?
 					conflictAction: "overwrite",
 					headers: [{
 						name: "Referer",
