@@ -1,5 +1,8 @@
 export class Notifications {
-	public showNotification(opts: browser.notifications.CreateNotificationOptions) {
-		return browser.notifications.create(opts);
+	public showNotification(id: string = "", opts: browser.notifications.CreateNotificationOptions) {
+		if (id !== "") {
+			browser.notifications.clear(id);
+		}
+		return browser.notifications.create(id, opts);
 	}
 }

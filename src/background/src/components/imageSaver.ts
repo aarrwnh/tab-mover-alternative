@@ -4,6 +4,8 @@ import { TabConnection } from "../browser/TabConnection";
 import { formatDateToReadableFormat } from "../utils/normalizeString";
 import { pluralize } from "../utils/pluralize";
 
+const NOTIFICATION_ID = "image-saver";
+
 function getFilename(url: string): string {
 	const last = new URL(url).pathname.split("/").pop() ?? "";
 	return last.includes("%") ? decodeURIComponent(last) : last;
@@ -133,7 +135,11 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 
 	function createNotice(message: string) {
 		if (opts.notifications) {
-			browser.notifications.create({ ...opts.notifications, message });
+			browser.notifications.clear(NOTIFICATION_ID);
+			browser.notifications.create(NOTIFICATION_ID, {
+				...opts.notifications,
+				message
+			});
 		}
 	}
 

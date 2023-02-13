@@ -3,6 +3,8 @@ import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
 import { getActiveTabsInWin, Tabs } from "../browser/Tab";
 import { TabConnection } from "../browser/TabConnection";
 
+const NOTIFICATION_ID = "bookmark-saver";
+
 type InternetShortcutFields = {
 	url: string;
 	origin: string;
@@ -74,6 +76,7 @@ export default function main(
 
 				if (!/^http/.test(url)) {
 					downloads.showNotification(
+						NOTIFICATION_ID,
 						makeNotificationOpts(`can't save: "${ url }"`)
 					);
 					continue;
@@ -114,6 +117,7 @@ export default function main(
 						}
 
 						downloads.showNotification(
+							NOTIFICATION_ID,
 							makeNotificationOpts(
 								(opts.notifications ? String(opts.notifications.message) : "")
 								+ `: ${ title }`
@@ -123,6 +127,7 @@ export default function main(
 					.catch(function (err: Error) {
 						if (err instanceof Error) {
 							downloads.showNotification(
+								NOTIFICATION_ID,
 								makeNotificationOpts(err.name + ": " + err.message)
 							);
 						}
