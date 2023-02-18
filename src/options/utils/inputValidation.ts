@@ -97,10 +97,12 @@ export function pathValidator() {
 	};
 }
 
+const reEscapeSeq = /[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g;
+
 export function regExpValidator() {
 	return function (value: string) {
 		try {
-			new RegExp(value);
+			new RegExp(value.replace(reEscapeSeq, "\\$&"));
 			return true;
 		}
 		catch (error) {
