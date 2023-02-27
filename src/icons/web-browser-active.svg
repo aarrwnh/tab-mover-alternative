@@ -1,20 +1,27 @@
-<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   enable-background="new 0 0 24 24"
-   viewBox="0 0 24 24"
-   >
-   <style>
-      .st0 { fill: context-fill; opacity: 0.3 }
-   </style>
+<svg
+	width="24"
+	height="24"
+	viewBox="0 0 24 24"
+	enable-background="new 0 0 24 24"
+	xmlns="http://www.w3.org/2000/svg"
+	xmlns:svg="http://www.w3.org/2000/svg"
+>
+	<style>
+	path {
+		fill: context-fill;
+		opacity: 0.3
+	}
+	@media (prefers-color-scheme: dark) {
+		path {
+			fill: #e2e2e2;
+		}
+	}
+	</style>
 
-   <g>
-      <g>
-         <g>
-            <path class="st0" d="m17.5,7l-15,0c-1.381,0 -2.5,1.119 -2.5,2.5l0,12c0,1.381 1.119,2.5 2.5,2.5l15,0c1.381,0 2.5,-1.119 2.5,-2.5l0,-12c0,-1.381 -1.119,-2.5 -2.5,-2.5zm-0.5,15l-14,0c-0.551,0 -1,-0.448 -1,-1l0,-9l16,0l0,9c0,0.552 -0.449,1 -1,1z" fill="context-fill" fill-opacity="context-fill-opacity"/>
-         </g>
-         <g>
-            <path class="st0" d="m21.5,0l-15,0c-1.38,0 -2.5,1.12 -2.5,2.5l0,2.5l18,0l0,11.95c1.14,-0.23 2,-1.24 2,-2.45l0,-12c0,-1.38 -1.12,-2.5 -2.5,-2.5z" fill="context-fill" fill-opacity="context-fill-opacity"/>
-         </g>
-      </g>
-   </g>
+	<path
+		d="m17.5,7l-15,0c-1.381,0 -2.5,1.119 -2.5,2.5l0,12c0,1.381 1.119,2.5 2.5,2.5l15,0c1.381,0 2.5,-1.119 2.5,-2.5l0,-12c0,-1.381 -1.119,-2.5 -2.5,-2.5zm-0.5,15l-14,0c-0.551,0 -1,-0.448 -1,-1l0,-9l16,0l0,9c0,0.552 -0.449,1 -1,1z"
+	/>
+	<path
+		d="m21.5,0l-15,0c-1.38,0 -2.5,1.12 -2.5,2.5l0,2.5l18,0l0,11.95c1.14,-0.23 2,-1.24 2,-2.45l0,-12c0,-1.38 -1.12,-2.5 -2.5,-2.5z"
+	/>
 </svg>
