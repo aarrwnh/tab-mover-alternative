@@ -39,10 +39,10 @@ export const recentFocusedWindows = (new class _<T extends number> {
 	}
 
 	public last(isIncognito = false): T {
-		return this.filter(isIncognito).reverse()[0];
+		return this.recent(isIncognito, -1)[0];
 	}
 
-	public recent(isIncognito = false): T {
-		return this.filter(isIncognito).reverse()[1];
+	public recent(isIncognito = false, amount = -2): T[] {
+		return this.filter(isIncognito).slice(amount);
 	}
 });

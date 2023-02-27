@@ -2,7 +2,6 @@ export async function setupSettings() {
 
 	const DEFAULT: Addon.DefaultSettings = {
 		switchToTabAfterMoving: false,
-		showLastWindowIDBadge: false,
 		moveableContainers: [],
 		tabTravelDistance: 0,
 		debugMode: false,
@@ -15,7 +14,7 @@ export async function setupSettings() {
 		imageSaverCloseOnComplete: true,
 	};
 
-	const _settings: Addon.Settings = Object.assign({});
+	const _settings = {} as Addon.Settings;
 
 	Object.defineProperty(_settings, "reset", {
 		enumerable: false,
@@ -28,7 +27,7 @@ export async function setupSettings() {
 
 	await browser.storage.local.get(DEFAULT)
 		.then((result) => {
-			Object.entries(result).forEach(([key, val]) => {
+			Object.entries(result as Addon.Settings).forEach(([key, val]) => {
 				_settings[key] = val;
 			});
 			return _settings;
@@ -45,10 +44,14 @@ export async function setupSettings() {
 		});
 
 
-	function updateSettings(changes: { [key: string]: browser.storage.StorageChange }, areaName: string) {
+	function updateSettings(
+		changes: { [key: string]: browser.storage.StorageChange; },
+		areaName: string
+	) {
 		if (areaName === "local") {
 			Object.keys(_settings).forEach((key) => {
 				if (changes[key] !== undefined) {
+					// eslint-disable-next-line
 					_settings[key] = changes[key].newValue;
 				}
 			});

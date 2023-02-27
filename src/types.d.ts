@@ -17,7 +17,6 @@ declare namespace Addon {
 
 	declare interface DefaultSettings {
 		switchToTabAfterMoving: boolean;
-		showLastWindowIDBadge: boolean;
 		tabTravelDistance: number;
 		debugMode: boolean;
 		recentTabTimeout: number;
@@ -36,7 +35,7 @@ declare namespace Addon {
 
 
 	declare interface ModuleOpts {
-		notifications?: Omit<browser.notifications.CreateNotificationOptions, "message"> & Partial<{ message: string }>;
+		notifications?: Omit<browser.notifications.CreateNotificationOptions, "message"> & Partial<{ message: string; }>;
 		closeTabsOnComplete?: boolean;
 		formatDateMonth?: boolean; // 2021-jan-2 => 2021-01-02
 	}

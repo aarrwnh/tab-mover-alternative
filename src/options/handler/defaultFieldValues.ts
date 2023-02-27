@@ -21,13 +21,6 @@ export const defaultFormFieldValues: TSettings = {
 			},
 			{
 				type: "Checkbox",
-				name: "showLastWindowIDBadge",
-				value: false,
-				label: "Show previously active window ID in the badge",
-				valid: true,
-			},
-			{
-				type: "Checkbox",
 				name: "movePinnedTabs",
 				value: false,
 				label: "(not implemented) Move pinned tabs between windows (was added in version-9 for some reason...)",

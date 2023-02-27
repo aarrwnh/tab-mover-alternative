@@ -4,7 +4,7 @@ import { visitedTabsHistory } from "./visitedTabHistory";
 
 const { WINDOW_ID_CURRENT, WINDOW_ID_NONE } = browser.windows;
 const BADGE_COLOR_DEFAULT = "royalblue";
-const BADGE_COLOR_LAST_FOCUS = "red";
+// const BADGE_COLOR_LAST_FOCUS = "red";
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "ftp:"]);
 
 let windowMenuIds: (string | number)[] = [];
@@ -77,7 +77,7 @@ export default async function main(settings: Addon.Settings) {
 		await browser.tabs.move(tabs.filter(async function (id) {
 			const tab = await browser.tabs.get(id);
 			if (!tab.pinned) {
-				Logger(`moving tab#${ tab.id } ${ tab.url }`);
+				Logger(`moving tab#${ tab.id! } ${ tab.url! }`);
 				return true;
 			}
 			return false;
@@ -284,62 +284,25 @@ export default async function main(settings: Addon.Settings) {
 		}
 	}
 
-	async function setBadgeText(text: number | string) {
-		await browser.browserAction.setBadgeText({ text: String(text) });
-	}
-
 	async function updateIconBadge(id: number) {
-		const { showLastWindowIDBadge } = settings;
 		const windows = await getCurrentWindows();
+		const currentWindow = await browser.windows.getCurrent();
 
 		if (typeof id === "undefined") {
 			id = (await browser.windows.getLastFocused()).id || 0;
 		}
 
-		if (id > 0 && showLastWindowIDBadge) {
-			setBadgeText(windows.length > 1 ? String(id) : "+");
-		}
-
-		if (windows.length === 1) {
-			browser.browserAction.setTitle({ title: "" });
-			browser.browserAction.setBadgeBackgroundColor({
-				windowId: WINDOW_ID_CURRENT,
-				color: BADGE_COLOR_DEFAULT
-			});
-			return;
-		}
-
-		const incognitoWindowsSize = recentFocusedWindows.sizeof(true);
+		const moveable: number[] = [
+			currentWindow.id!,
+			id,
+			...recentFocusedWindows.recent(currentWindow.incognito, -2)
+		];
 
 		windows.forEach(function (y) {
-			if (showLastWindowIDBadge) {
-				browser.browserAction.setBadgeBackgroundColor({
-					windowId: y.id,
-					color: y.id === id
-						? BADGE_COLOR_LAST_FOCUS
-						: BADGE_COLOR_DEFAULT
-				});
-			}
-
-			// Set the `non-active` icon for indicator of the last active window (destination)
 			browser.browserAction.setIcon({
 				windowId: y.id,
-				path: `icons/web-browser-${ y.id === id ? "non-" : "" }active.svg`
+				path: `icons/web-browser-${ moveable.includes(y.id!) ? "" : "non-" }active.svg`
 			});
-
-			if (y.incognito && incognitoWindowsSize === 1) {
-				setBadgeText("");
-				return;
-			}
-
-			if (y.id === id && y.title) {
-				// Set button tooltip pointing current tab title of the last active window
-				y.title = cleanWindowTitle(y.title);
-				const title = y.title.slice(0, 20);
-				const ellipsis = y.title.length === title.length ? "" : "...";
-
-				browser.browserAction.setTitle({ title: `Move to window:\n${ id } : ${ title }${ ellipsis }` });
-			}
 		});
 	}
 
@@ -389,7 +352,7 @@ export default async function main(settings: Addon.Settings) {
 
 	async function sortSelectedTabs() {
 		const selectedTabs = await getHighlightedTabs();
-		if (selectedTabs.length > 2) {
+		if (selectedTabs.length > 1) {
 			const s = selectedTabs.sort(sortTabsByTitle).map((t) => t.id ?? -1);
 			await browser.tabs.move(s, { index: selectedTabs[0].index });
 		}
@@ -446,7 +409,7 @@ export default async function main(settings: Addon.Settings) {
 
 		const targetWindows = await getCurrentWindows();
 
-		const lastActiveWindow = recentFocusedWindows.recent(tab.incognito);
+		const lastActiveWindow = recentFocusedWindows.recent(tab.incognito)[0];
 
 		if (targetWindows.length === 1) {
 			moveTabs(tab, 0); // create new window
@@ -483,9 +446,8 @@ export default async function main(settings: Addon.Settings) {
 		const win = await browser.windows.get(id);
 
 		const lastFocusedWindowId = recentFocusedWindows.last(win.incognito);
-
+		updateIconBadge(lastFocusedWindowId);
 		if (id > 0 && lastFocusedWindowId !== id) {
-			updateIconBadge(lastFocusedWindowId);
 			recentFocusedWindows.delete(id);
 			recentFocusedWindows.set(id, win.incognito);
 		}
@@ -494,7 +456,7 @@ export default async function main(settings: Addon.Settings) {
 	function onRemoved(id: number): void {
 		const isIncognito = recentFocusedWindows.get(id) || false;
 		recentFocusedWindows.delete(id);
-		updateIconBadge(recentFocusedWindows.recent(isIncognito));
+		updateIconBadge(recentFocusedWindows.recent(isIncognito)[0]);
 	}
 
 	browser.windows.onRemoved.addListener(onRemoved);
@@ -508,7 +470,7 @@ export default async function main(settings: Addon.Settings) {
 		switch (command) {
 			case "move-tabs": {
 				getCurrentTab().then((tab) => {
-					const lastActiveWindow = recentFocusedWindows.recent();
+					const lastActiveWindow = recentFocusedWindows.recent()[0];
 					if (tab.length > 0 && lastActiveWindow > 0) {
 						moveTabs(tab[0], lastActiveWindow);
 					}
@@ -531,17 +493,9 @@ export default async function main(settings: Addon.Settings) {
 	});
 
 	// update/reset some things on options change
-	browser.storage.onChanged.addListener(function () {
-		const { showLastWindowIDBadge } = settings;
-		if (!showLastWindowIDBadge) {
-			setBadgeText("");
-		}
-		if (showLastWindowIDBadge) {
-			setBadgeText(recentFocusedWindows.first());
-		}
-	});
+	// browser.storage.onChanged.addListener(function () {
+	//    const {  } = settings;
+	// });
 
-	if (recentFocusedWindows.size > 1) {
-		updateIconBadge(recentFocusedWindows.recent());
-	}
+	updateIconBadge(recentFocusedWindows.recent()[0]);
 }

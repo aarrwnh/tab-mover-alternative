@@ -9,7 +9,7 @@
 	<style>
 	path {
 		fill: context-fill;
-		opacity: 0.3
+		opacity: 0.9;
 	}
 	@media (prefers-color-scheme: dark) {
 		path {
