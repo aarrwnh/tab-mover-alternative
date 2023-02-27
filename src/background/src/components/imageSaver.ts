@@ -68,7 +68,9 @@ function validateRegExpTag(target: string): RegExp | void {
 }
 
 async function evaluateLargeTarget(e: TabRules): Promise<string[][]> {
-	let matches: string[][] = [];
+	const matches: string[][] = [];
+
+	const foundUrls: string[] = [];
 
 	const tabConnection = new TabConnection(e.tab.id);
 
@@ -80,24 +82,30 @@ async function evaluateLargeTarget(e: TabRules): Promise<string[][]> {
 		const xPathFromTag = validateXPathTag(e.rules.findLargestTarget);
 
 		if (xPathFromTag) {
-			matches = (await tabConnection.queryXPath(xPathFromTag.path, xPathFromTag.attr) || [])
-				.map((x) => {
+			(await tabConnection.queryXPath(xPathFromTag.path, xPathFromTag.attr) || [])
+				.forEach((x) => {
 					if (regexFromTag) {
 						const match = x.match(regexFromTag);
-						return match === null ? [] : [x, ...match.slice(1)];
+						if (match === null
+							// skip duplicate urls; XPath evaluator might return duplicates
+							// if expresion contains multiple paths, e.g. `//div a | //a`
+							|| foundUrls.includes(x)) {
+							return;
+						}
+						foundUrls.push(x);
+						matches.push([x, ...match.slice(1)]);
+						return;
 					}
-					return [x];
+					matches.push([x]);
 				});
 		}
 	}
 	else {
 		// treat `target` as RegExp
-		matches = await tabConnection.matchAllText(e.rules.findLargestTarget) || [];
+		return await tabConnection.matchAllText(e.rules.findLargestTarget) || [];
 	}
 
-	return matches.length > 0
-		? matches.filter((x) => x.length > 0)
-		: [];
+	return matches;
 }
 
 function normalizeFilename(filename: string): string {
@@ -167,8 +175,8 @@ export default function main(settings: Addon.Settings, opts: Addon.ModuleOpts): 
 		for (const data of tabs) {
 			browser.browserAction.setBadgeText({ text: "-" + String(tabCount--) });
 
-			console.group(`tab#${data.tab.id}`);
-			console.log(`parsing ${ data.tab.url }`);
+			console.group(`tab#${ data.tab.id! }`);
+			console.log(`parsing ${ data.tab.url! }`);
 
 			if (
 				data.tab.url === undefined
