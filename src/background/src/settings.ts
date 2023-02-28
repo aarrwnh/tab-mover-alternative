@@ -24,7 +24,6 @@ export async function setupSettings() {
 		}
 	});
 
-
 	await browser.storage.local.get(DEFAULT)
 		.then((result) => {
 			Object.entries(result as Addon.Settings).forEach(([key, val]) => {
@@ -32,17 +31,6 @@ export async function setupSettings() {
 			});
 			return _settings;
 		});
-
-
-	await browser.storage.local.get()
-		.then((result) => {
-			const currentSettings = Object.keys(result);
-			if (currentSettings.length === 0
-				|| currentSettings.length !== Object.keys(_settings).length) {
-				_settings.reset();
-			}
-		});
-
 
 	function updateSettings(
 		changes: { [key: string]: browser.storage.StorageChange; },
