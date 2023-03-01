@@ -6,8 +6,8 @@
 
 	export let target: string;
 	export let folder: string;
-	export let disabled: boolean;
-	export let findLargest: boolean;
+	export let disabled: boolean = false;
+	export let findLargest: boolean = false;
 	export let findLargestTarget: string;
 	export let onRemove: () => void;
 	export let onChange: (isValid: boolean) => void;
@@ -55,7 +55,10 @@
 {#if findLargest}
 	<tr>
 		<td>
-			<InputFindLargestTarget bind:findLargestTarget onChange={handleValidState} />
+			<InputFindLargestTarget
+				bind:findLargestTarget
+				onChange={handleValidState}
+			/>
 		</td>
 	</tr>
 {/if}

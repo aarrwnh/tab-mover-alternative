@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TSettings } from "../types/FormElements";
+	import { DEFAULT_SETTINGS } from "../../background/src/settings";
 	import Checkbox from "./Checkbox.svelte";
 	import ImageSaver from "./ImageSaver/index.svelte";
 	import Input from "./Input.svelte";
@@ -15,7 +16,7 @@
 	let showSavedIndicator = false;
 
 	function parseFieldsToObject(fields: TSettings): Addon.Settings | void {
-		let parsedSettings: Addon.Settings = Object.create({});
+		const parsedSettings = {} as Addon.Settings;
 
 		for (const section of Object.values(fields)) {
 			for (let idx = 0; idx < section.opts.length; idx++) {
@@ -28,10 +29,13 @@
 						return !(x.folder === "" || x.target === "");
 					});
 
-					// fix object
 					value.forEach((item) => {
 						Object.assign(
-							{ findLargestTarget: "", findLargest: false, disabled: false },
+							{
+								findLargestTarget: "",
+								findLargest: false,
+								disabled: false,
+							},
 							item
 						);
 					});
@@ -93,7 +97,11 @@
 	}
 
 	function exportSettings() {
-		const json = JSON.stringify(parseFieldsToObject(formFieldValues), null, 2);
+		const json = JSON.stringify(
+			parseFieldsToObject(formFieldValues),
+			null,
+			2
+		);
 		const urlFileBodyBlob = new Blob([json], { type: "text/plain" });
 		const objectURL = URL.createObjectURL(urlFileBodyBlob);
 		const d = new Date()
@@ -114,8 +122,50 @@
 		});
 	}
 
-	function resetSettings(ev: Event) {
-		(ev.target as HTMLButtonElement).textContent = "TODO";
+	function importSettings(): void {
+		const input = document.createElement("input");
+		input.style.display = "none";
+		input.type = "file";
+		input.accept = ".json";
+		document.body.appendChild(input);
+		input.addEventListener("change", function () {
+			if (input.files && input.files.length === 1) {
+				const file = input.files[0];
+				if (file.size > 1e8) {
+					return;
+				}
+				const reader = new FileReader();
+				reader.addEventListener("loadend", function (ev) {
+					input.remove();
+					if (!ev.target) {
+						return;
+					}
+					if (typeof ev.target.result !== "string") {
+						return;
+					}
+					const contents = JSON.parse(ev.target.result) as Addon.Settings;
+					const hasSameKeys = Object.keys(contents).every((key) =>
+						DEFAULT_SETTINGS.hasOwnProperty(key)
+					);
+					if (hasSameKeys) {
+						browser.storage.local.set(contents).then(function () {
+							browser.runtime.reload();
+						});
+					} else {
+						console.warn("file contents do not have correct keys");
+					}
+				});
+				reader.readAsText(file, "utf-8");
+			}
+			document.body.removeChild(input);
+		});
+		input.click();
+	}
+
+	function resetSettings(): void {
+		browser.storage.local.set(DEFAULT_SETTINGS).then(function () {
+			browser.runtime.reload();
+		});
 	}
 
 	let tabs: string[] = [];
@@ -130,7 +180,7 @@
 		}
 	});
 
-	function addTab(tabTitle: string) {
+	function addTab(tabTitle: string): string {
 		tabs = tabs.concat(tabTitle);
 		return "";
 	}
@@ -146,7 +196,7 @@
 		<div
 			id="option-tabs"
 			on:wheel|preventDefault={(ev) => {
-				let inc = ev.deltaY > 0 ? 1 : ev.deltaY < 0 ? -1 : 0;
+				const inc = ev.deltaY > 0 ? 1 : ev.deltaY < 0 ? -1 : 0;
 				activeTabId.set($activeTabId + inc);
 			}}
 		>
@@ -164,7 +214,10 @@
 		</div>
 
 		{#each Object.entries(formFieldValues) as [sectionName, formSection], id}
-			<section data-name={sectionName} class:hidden-section={id !== $activeTabId}>
+			<section
+				data-name={sectionName}
+				class:hidden-section={id !== $activeTabId}
+			>
 				{addTab(formSection.title)}
 
 				{#each formSection.opts as field}
@@ -211,7 +264,10 @@
 							/>
 						{/if}
 					{:else if field.type === "CustomObject" && field.name === "imageSaverRules"}
-						<ImageSaver bind:rules={field.value} bind:valid={field.valid} />
+						<ImageSaver
+							bind:rules={field.value}
+							bind:valid={field.valid}
+						/>
 					{/if}
 				{/each}
 			</section>
@@ -224,11 +280,17 @@
 				{showSavedIndicator ? "Saved" : "Save"}
 			</button>
 
-			<button style="float: right;" id="reset" type="button" on:click={resetSettings}>
+			<button id="reset" type="button" on:click={resetSettings}>
 				Reset
 			</button>
 
-			<button id="export" type="button" on:click={exportSettings}>Export</button>
+			<button id="export" type="button" on:click={exportSettings}>
+				Export
+			</button>
+
+			<button id="import" type="button" on:click={importSettings}>
+				Import
+			</button>
 		</div>
 	</form>
 {/await}
@@ -236,6 +298,10 @@
 <style>
 	button {
 		cursor: pointer;
+	}
+
+	button#reset {
+		float: right;
 	}
 
 	#option-tabs div:hover {

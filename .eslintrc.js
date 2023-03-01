@@ -12,7 +12,10 @@ module.exports = {
 		tsconfigRootDir: __dirname,
 		project: [
 			"tsconfig.json"
-		]
+		],
+		extraFileExtensions: [
+			".svelte"
+		],
 	},
 	extends: [
 		"eslint:recommended",
@@ -20,17 +23,29 @@ module.exports = {
 		"plugin:@typescript-eslint/recommended-requiring-type-checking",
 		"plugin:@typescript-eslint/recommended"
 	],
+	plugins: [
+		"svelte3",
+		"@typescript-eslint"
+	],
+	overrides: [
+		{
+			files: ["*.svelte"],
+			processor: "svelte3/svelte3"
+		}
+	],
+	settings: {
+		"svelte3/typescript": () => require("typescript")
+		// "svelte3/ignore-styles": () => true
+	},
 	rules: {
 		"arrow-parens": 2,
 		"no-empty": 0,
 		"quotes": 0,
+		"@typescript-eslint/no-unsafe-argument": 0,
 		"@typescript-eslint/no-unsafe-member-access": 0,
 		"@typescript-eslint/no-floating-promises": 0,
 		"@typescript-eslint/no-misused-promises": 0,
-		"brace-style": [
-			1,
-			"stroustrup"
-		],
+		"brace-style": 0,
 		"no-use-before-define": 0,
 		"strict": [
 			"warn",
@@ -99,7 +114,7 @@ module.exports = {
 		"@typescript-eslint/no-explicit-any": 0,
 		"@typescript-eslint/prefer-as-const": "warn",
 		"@typescript-eslint/explicit-function-return-type": 0,
-		"@typescript-eslint/member-delimiter-style": 2,
+		"@typescript-eslint/member-delimiter-style": 0,
 		"@typescript-eslint/no-extra-semi": 2,
 		"@typescript-eslint/quotes": [
 			"error",

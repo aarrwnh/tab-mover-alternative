@@ -1,7 +1,7 @@
 <script lang="ts">
 	import LabelAnnotation from "./LabelAnnotation.svelte";
 
-	export let checked: boolean;
+	export let checked: boolean = false;
 	export let name: string;
 
 	export let id: string = "";
