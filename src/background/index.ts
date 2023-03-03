@@ -2,6 +2,7 @@ import { setupSettings } from "./src/settings";
 import setupTabMover from "./src/components/tabMover/";
 import setupBookmarkTab from "./src/components/bookmarkTab";
 import setupImageSaver from "./src/components/imageSaver";
+import setupReloadTabs from "./src/components/reloadTabs";
 import { createMenuItem } from "./src/browser/Menu";
 
 async function main() {
@@ -24,6 +25,7 @@ async function main() {
 	]);
 
 	setupTabMover(settings);
+	setupReloadTabs(settings);
 
 	setupBookmarkTab(settings, {
 		notifications: {
