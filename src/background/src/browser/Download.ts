@@ -1,5 +1,5 @@
 import { convertFullWidthToHalf } from "../utils/characterShift";
-import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
+import { sanitizeFilename } from "../utils/sanitizeFilename";
 import { Notifications } from "./Notifications";
 
 function encodeFilename(opts: browser.downloads._DownloadOptions) {
@@ -37,11 +37,19 @@ export class Downloads extends Notifications {
 	async start(opts: browser.downloads._DownloadOptions, _retrying = false): Promise<void> {
 		if (opts.filename && !_retrying) {
 			opts.filename = opts.filename.split("/").map((x) => {
-				return replaceIllegalCharacters(convertFullWidthToHalf(x));
+				return sanitizeFilename(convertFullWidthToHalf(x));
 			}).join("/");
 
 			if (!/\.\w{3,4}$/.test(opts.filename)) {
 				throw new Error("filename without extension");
+			}
+
+			// Unknown why using ".url" as extension doesn't always work (on windows at least),
+			// and from time to time throws "illegal characters" error.
+			// `browser.downloads.download({ url: URL.createObjectURL(new Blob(["test"])), filename: "something.url" });`
+			// Save with different extension and rename after it is saved on disk.
+			if (/\.(url|lnk)$/.test(opts.filename)) {
+				opts.filename = opts.filename.replace(/\.(url|lnk)$/, ".link");
 			}
 		}
 

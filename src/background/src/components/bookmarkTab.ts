@@ -1,5 +1,5 @@
 import { Downloads } from "../browser/Download";
-import { replaceIllegalCharacters } from "../utils/replaceIllegalCharacters";
+import { sanitizeFilename } from "../utils/sanitizeFilename";
 import { getActiveTabsInWin, Tabs } from "../browser/Tab";
 import { TabConnection } from "../browser/TabConnection";
 
@@ -58,7 +58,7 @@ export default function main(
 				? settings.bookmarksSaveLocation + "/"
 				: "")
 				+ subdirOrPrefix
-				+ replaceIllegalCharacters(title).slice(0, 150)
+				+ sanitizeFilename(title).slice(0, 150)
 				+ (date ? ` (${ date })` : "")
 				+ ".url";
 
