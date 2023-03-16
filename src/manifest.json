@@ -42,6 +42,7 @@
 		}
 	],
 	"browser_action": {
+		"default_area": "navbar",
 		"browser_style": true,
 		"default_icon": {
 			"32": "icons/web-browser-active.svg"
@@ -114,6 +115,9 @@
 				"linux": "Ctrl+Alt+1"
 			},
 			"description": "Save currently opened tab as bookmark"
+		},
+		"reload-tabs": {
+			"description": "Reload selected tabs concurrently (max 2)"
 		}
 	}
 }
