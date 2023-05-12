@@ -13,7 +13,9 @@ export default function main(_settings: Addon.Settings): void {
 			// discarded: true,
 		});
 
-		for await (const tab of tabs) {
+		for (const tab of tabs) {
+			browser.tabs.update(tab.id!, { highlighted: false });
+
 			queue.exec(async function () {
 				await new Promise(function (resolve) {
 					function response(details: browser.webNavigation._OnCompletedDetails) {

@@ -1,8 +1,6 @@
 # tab-mover-alternative
 
-This is a modified version of [*Tab
-Mover*](https://code.guido-berhoerster.org/addons/firefox-addons/tab-mover/)
-addon for personal use only (i.e. as unsigned addon).
+This is a modified version of [*Tab Mover*](https://code.guido-berhoerster.org/addons/firefox-addons/tab-mover/) addon for personal use only (i.e. as unsigned addon).
 
 
 ## Differences from the original
@@ -35,8 +33,10 @@ closing and reopening such tabs in another window, via the context menu only.
 ## Image saver
 
 Implements more or less the same logic as the old XUL addon [Bazzacuda Image Saver
-Plus](http://konbu.crz.jp/) (at least to the extent I used and needed
-it).
+Plus](http://konbu.crz.jp/) (at least to the extent I used and needed it).
+
+features:
+- prefer to save from selected tabs (i.e. more than 1 tab)
 
 
 ## Bookmark saver
@@ -61,27 +61,9 @@ Find and save images in the current window | Ctrl+Alt+2
 Save currently opened tab as bookmark | Ctrl+Alt+1
 
 
-## Build
-
-```
-yarn build
-```
-
-
-### Debug/Run
-
-```
-yarn debug
-```
-
-
 ## TODO
-
 - move all highlighted tabs to end position, not just a single one
-- img-saver: prefer to save tabs when selected (if 1 tab is selected it will
-  save just that)
 - don't complete/close tab if response is other than 200? (`Error: SERVER_FAILED`)
-- import settings
 - reorganize options page
 - integrate locales with new stuff?
 - rename addon, since it doesn't just move tabs anymore: firefox-tab-tools?
