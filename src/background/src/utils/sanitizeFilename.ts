@@ -12,6 +12,7 @@ const ILLEGAL_SYSTEM_CHAR: {
 	"\\": "\uff3c", // ＼
 	"\u3000": "\x20", // full-width space
 	"\u200d": "",
+	"\u00a0": " " // &nbsp; &#160; Non-breaking space
 };
 
 // const controlRegex = /[\x00-\x1f\x80-\x9f]/g;

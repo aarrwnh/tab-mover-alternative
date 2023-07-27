@@ -147,9 +147,7 @@ export default async function main(settings: Addon.Settings) {
 
 		const actTabId = activeTab?.id ?? -1;
 
-		if (switchToActiveTab
-			|| switchToTabAfterMoving
-			&& actTabId !== -1) {
+		if ((switchToActiveTab || switchToTabAfterMoving) && actTabId !== -1) {
 			// mark the previously active tab active again before highlighting other
 			// tabs since this resets the selected tabs
 

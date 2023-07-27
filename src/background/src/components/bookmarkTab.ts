@@ -131,6 +131,9 @@ export default function main(
 								makeNotificationOpts(err.name + ": " + err.message)
 							);
 						}
+						else {
+							console.error(err);
+						}
 					});
 			}
 

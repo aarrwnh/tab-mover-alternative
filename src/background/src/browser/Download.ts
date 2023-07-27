@@ -34,8 +34,12 @@ export class Downloads extends Notifications {
 		}
 	}
 
-	async start(opts: browser.downloads._DownloadOptions, _retrying = false): Promise<void> {
-		if (opts.filename && !_retrying) {
+	async start(opts: browser.downloads._DownloadOptions, _retry = 0): Promise<void> {
+		if (_retry > 3) {
+			return Promise.reject("aborting after too many attempts");
+		}
+
+		if (opts.filename && _retry === 0) {
 			opts.filename = opts.filename.split("/").map((x) => {
 				return sanitizeFilename(convertFullWidthToHalf(x));
 			}).join("/");
@@ -92,9 +96,7 @@ export class Downloads extends Notifications {
 								console.warn("encoding filename as last resort", opts.filename);
 							}
 
-							resolve(this.start(opts, true));
-
-							return;
+							return resolve(this.start(opts, _retry + 1));
 						}
 						else {
 							throw new Error(err.message + ": " + opts.url);

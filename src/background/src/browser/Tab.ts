@@ -25,7 +25,8 @@ export async function getActiveTabsInWin(
 	const tabs = await browser.tabs.query({
 		hidden: false,
 		windowId,
-		discarded
+		discarded,
+		pinned: false,
 	});
 	const highlighted = tabs.filter((tab) => tab.highlighted);
 	if (highlighted.length > 1) {
