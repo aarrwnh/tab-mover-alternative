@@ -112,7 +112,9 @@ function normalizeFilename(filename: string): string {
 	return filename
 		.replace(/[.]{2,}/g, "_")
 		// put twitter image size indicators, :orig :large, before extension
-		.replace(/(\.\w+):(\w+)/, "\x20$2$1");
+		.replace(/(\.\w+):(\w+)/, "\x20$2$1")
+		// bsky.social.app
+		.replace(/@(jpeg|jpg|png|gif)$/, ".$1");
 }
 
 function groupEnd(msg?: string) {
